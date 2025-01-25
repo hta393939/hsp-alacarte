@@ -1,0 +1,14 @@
+
+hsptmp
+obj
+*.ax
+
+*.html
+*.js
+*.wasm
+*.data
+
+!docs/**/*.html
+!docs/**/*.js
+!docs/**/*.wasm
+!docs/**/*.data
