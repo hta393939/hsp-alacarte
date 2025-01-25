@@ -30,7 +30,7 @@
 	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
 
 
-	if 1 {
+	if 0 {
 		df_celload bgcel,"tamadot.png"		; キャラクターの画像ファイル
 		es_sizeex 64,64,,40,40,12,24		; キャラクターのサイズ指定
 		es_patanim 0, 4, 256, 64, 0, bgcel	; キャラクターの登録(0)
