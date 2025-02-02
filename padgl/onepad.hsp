@@ -1,39 +1,18 @@
 
 #include "hgimg4.as"
 
-	_onepadinit 1
-
-	repeat
-		redraw 0
-		gpdraw
-
-		pos 8, 8
-		color 0,204,0
-		getreq fps, SYSREQ_FPS
-		mes strf("%d [fps]", fps)
-
-		repeat 10
-			mes strf("%d, %f", cnt, _pad(cnt))
-		loop
-
-		pos 240, 8
-		repeat 16
-			mes strf("%d, %d", cnt, int(_pad(cnt + 10)))
-			_pad(cnt + 10) = 0.0
-		loop
-
-		redraw 1
-		await 1000/30
-	loop
-
-
-#deffunc _onepadinit int _press
+#module onepad
+#deffunc local ini int _press
 // _press: 1 のときは押したときだけボタンを1.0に更新する
 // 読み取ったとき自分で0.0に書き換えること
 
 	_elnum = (10 + 16) * 1
 	_ostype = sysinfo(0)
-	if instr(_ostype, 0, "Emscripten") < 0 {
+	_isem = 0
+	if instr(_ostype, 0, "Emscripten") == 0 {
+		_isem = 1
+	}
+	if _isem == 0 {
 //#include "mod_joystick2.as"
 		ddim _pad, _elnum
 		return
@@ -86,4 +65,32 @@ _update();
 "}
 	exec _code
 	return
+
+#global
+
+
+	ini@onepad 1
+
+	repeat
+		redraw 0
+		gpdraw
+
+		pos 8, 8
+		color 0,204,0
+		getreq fps, SYSREQ_FPS
+		mes strf("%d [fps]", fps)
+
+		repeat 10
+			mes strf("%d, %f", cnt, _pad@onepad(cnt))
+		loop
+
+		pos 240, 8
+		repeat 16
+			mes strf("%d, %d", cnt, int(_pad@onepad(cnt + 10)))
+			_pad@onepad(cnt + 10) = 0.0
+		loop
+
+		redraw 1
+		await 1000/60
+	loop
 
