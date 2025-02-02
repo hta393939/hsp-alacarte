@@ -1,0 +1,155 @@
+#include "dotfw.as"
+#define BGPIC_ID (0)
+#define MYMAP_ID (1)
+
+#define BGFRONT_ID (2)
+
+	runos = sysinfo(0)
+	_isem = 0
+	if instr(runos, 0, "Emscripten") == 0 {
+		_isem = 1
+	}
+	if _isem == 0 {
+		chdir "data"
+	}
+// 敵弾は上からぶつかると消える
+	;	マップを使ったサンプル4
+
+	//df_config "ps2 Z150"
+	df_config "X320 Y240 Z200 vpad"
+	//df_config "X320 Y240 Z200 vpad"
+	//df_config "X256 Y192 Z200"
+	df_reset
+
+
+	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "semai1.tmap"	; マップファイル読み込み
+	mapsx = _dotfw_curmapx			; マップサイズXを取得
+	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
+
+	//df_bgpoint 0, 10,10
+
+	// mapaction セットしなかったらショットも撃てる
+	// セットしないとフルスクロールしない
+	df_mapaction MYMAP_ID, 0, 6 ; 重力無し
+	//df_mapaction MYMAP_ID, 60, 6 ; 重力とジャンプ(80, 8とか)
+
+	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
+	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+
+
+	if 0 {
+		df_celload bgcel,"tamadot.png"		; キャラクターの画像ファイル
+		es_sizeex 64,64,,40,40,12,24		; キャラクターのサイズ指定
+		es_patanim 0, 4, 256, 64, 0, bgcel	; キャラクターの登録(0)
+		es_patanim 4, 4, 256, 192, 0, bgcel	; キャラクターの登録(4)
+	} else {
+		df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
+		es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
+		es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
+		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
+	}
+
+
+	df_mes "TAMANE DOT FRAMEWORK",1,1	; テキスト表示
+
+	df_addplayer 300,100,0			; プレイヤーを追加
+	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
+	df_pmode 0, 2, 2
+
+	if 1 {
+		chno = 0
+		df_emode 0, chno, 60, 100, 1, 0, 0
+
+		// 進行方向に画面内に入るように画面外から出現
+		//df_enemygen DIR_LEFT, 10, 60, 0
+	}
+
+	if 1 { // 画面外で消える
+		repeat 2
+			dir = DIR_DOWN
+			df_addenemy cnt * 50 + 200, 10, dir, 8, 0
+		loop
+	}
+
+
+	getreq ts, SYSREQ_TIMER
+	presec = ts / 1000
+	fpscount = 0
+	
+*main
+	getreq ts, SYSREQ_TIMER
+	df_mes strf("%d", ts), 1,3
+	cursec = ts / 1000
+	if cursec > presec {
+		df_mes strf("%d [fps]", fpscount), 1,2
+		presec = cursec
+		fpscount = 0
+	} else {
+		fpscount += 1
+	}
+
+	
+	
+	// key は dotfw でセットされるのか
+	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
+
+	if key & PLAYER_KEY_BUTTON2 {
+		repeat 1000
+			x = 180 + (cnt \ 10) * 10
+			y = 200 + (cnt / 10) * 4
+			df_addenemy x,y, dir, 8, 0
+		loop
+	}
+
+	//stick
+	if key & PLAYER_KEY_BUTTON3 {
+		// 0下から反時計周り
+		dir = DIR_LEFT
+		dir = _dotfw_mydir // ジャンプ時のみらしい
+		if dir == DIR_LEFT {
+			mv = -1
+		} else {
+			mv = 1
+		}
+		df_addpmis _dotfw_myx + mv * 8, _dotfw_myy, dir, 100 * 2, 0, 0
+	} // 2000h C
+	
+	df_getplayer
+	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
+	j=(_dotfw_myani>>2)&3
+	if _dotfw_myact!=1 : j=0
+	es_chr _dotfw_cursp, i+j
+
+	df_update
+	goto *main
+
+*player_mapev
+	;	イベント処理
+	op=_dotfw_curmapattr
+	if op==0 {
+		; アイテム取得
+		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
+	}
+	if op==1 {
+		goto *miss
+
+	}
+	return
+
+*mesrest
+	df_mes strf("12ab%c%c%c%c", 0x81, 0x91, 0xa1, 0xb1), 1,4
+	df_mes strf("24ab%c%c%c%c", 0x01, 0x11, 0x21, 0x31), 1,5
+	return
+
+
+*miss
+	; トゲにあたるとミス
+	df_mes "PLAYER MISS!",1,2		; テキスト表示
+	//df_pwipe ; プレイヤーを消去
+	gosub *mesrest
+	wait 100 * 3
+	// 
+	return
