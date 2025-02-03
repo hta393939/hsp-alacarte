@@ -10,6 +10,16 @@
 #const SE_SEL 3
 #const SE_FOOT 4
 
+#enum WID_KEI16 = 24
+#enum WID_KEI8
+#enum WID_MON32
+
+#const CHR_KEI_D 160
+#const CHR_KEI_U (CHR_KEI_D+4)
+#const CHR_KEI_L (CHR_KEI_U+4)
+#const CHR_KEI_R (CHR_KEI_L+4)
+#const CHR_MON_0 192
+
 	runos = sysinfo(0)
 	_isem = 0
 	if instr(runos, 0, "Emscripten") == 0 {
@@ -27,19 +37,13 @@
 	//df_config "X256 Y192 Z200"
 	df_reset
 
-	// 効果音
-	mmload "se_puyo.wav", SE_PUYO, 0
-	mmload "se_click.wav", SE_CLICK, 1
-	mmload "se_break2.wav", SE_BREAK2, 2
-	mmload "sel.wav", SE_SEL, 3
-	mmload "se_foot.wav", SE_FOOT, 4
-	repeat 5
-		mmvol cnt, -960
-	loop
+	gosub *appinit
+
+
 
 
 	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
-	df_loadbgmap MYMAP_ID, "semai1.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "survive16.tmap"	; マップファイル読み込み
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
@@ -68,10 +72,8 @@
 		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
 	}
 
-
-	df_mes "TAMANE DOT FRAMEWORK",1,1	; テキスト表示
-
-	df_addplayer 300,100,0			; プレイヤーを追加
+	//df_addplayer 300,100,0			; プレイヤーを追加
+	df_addplayer 300,100, CHR_KEI_D
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
 	df_pmode 0, 2, 2
 
@@ -79,7 +81,7 @@
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
 	//df_paction *onmiss, PACTION_MISS
-	//df_paction *onitem, PACTION_ITEM
+	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
 
 	if 1 {
@@ -119,10 +121,12 @@
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
 	df_getplayer
+	/* 左右振り
 	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
 	j=(_dotfw_myani>>2)&3
 	if _dotfw_myact!=1 : j=0
 	es_chr _dotfw_cursp, i+j
+*/
 
 	df_update
 	goto *main
@@ -142,6 +146,7 @@
 	repeat 1000
 		x = 180 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
+		df_emode 0, CHR_MON_0 + rnd(16), 10, 10, 100
 		df_addenemy x,y, dir, 8, 0
 	loop
 	return
@@ -149,6 +154,8 @@
 *onbut3
 	// C ×
 	// 0下から反時計周り
+	x = _dotfw_myx
+	y = _dotfw_myy
 	dir = DIR_LEFT
 	dir = _dotfw_mydir // ジャンプ時のみらしい
 	if dir == DIR_LEFT {
@@ -158,9 +165,16 @@
 	}
 	// 自分にあたるんだが;;
 	//mv = 0
-	df_addpmis _dotfw_myx + mv * 8, _dotfw_myy, dir, 100 * 2, 0, 0
+	df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
+
+	df_additem x - 32, y - 32, CHR_KEI_D, 0, DIR_DOWN, 100
 	return
 
+
+*onitem
+	spno = _dotfw_cursp
+	es_kill spno
+	return
 
 
 *player_mapev
@@ -169,10 +183,6 @@
 	if op==0 {
 		; アイテム取得
 		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
-	}
-	if op==1 {
-		goto *miss
-
 	}
 	return
 
@@ -189,4 +199,45 @@
 	gosub *mesrest
 	wait 100 * 3
 	// 
+	return
+
+
+*appinit
+	// 効果音
+	mmload "se_puyo.wav", SE_PUYO, 0
+	mmload "se_click.wav", SE_CLICK, 1
+	mmload "se_break2.wav", SE_BREAK2, 2
+	mmload "sel.wav", SE_SEL, 3
+	mmload "se_foot.wav", SE_FOOT, 4
+	repeat 5
+		mmvol cnt, -960
+	loop
+	
+	celload "kei16.png", WID_KEI16
+	es_size 16, 16, 100
+
+	frnum = 6
+
+	ch = CHR_KEI_D
+	es_patanim ch, 4, 0,0, frnum, WID_KEI16
+	es_link ch + 3, ch
+
+	ch = CHR_KEI_U
+	es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
+	es_link ch + 3, ch
+
+	celload "mondot.png", WID_MON32
+	es_size, 32, 32, 50
+
+	ch = CHR_MON_0
+	repeat 16
+		x = (cnt \ 2) * 32 * 4 / 32
+		y = (cnt / 2) * 32 / 32
+		es_patanim ch, 4, x,y, frnum, WID_MON32
+		es_link ch + 3, ch
+		ch += 4
+	loop
+
+	gsel 0
+
 	return
