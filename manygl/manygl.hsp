@@ -128,8 +128,19 @@
 	es_chr _dotfw_cursp, i+j
 */
 
-	df_update
+	if _menu {
+		gosub *menuframe
+	} else {
+		df_update
+	}
 	goto *main
+
+*onaim
+	spno = _dotfw_cursp
+	x = _dotfw_myx
+	y = _dotfw_myy
+	es_aim spno, x,y, 100
+	return
 
 
 // Å¢ X
@@ -139,14 +150,18 @@
 	// X Å¢
 	//mmplay SE_PUYO
 	mmplay SE_FOOT
+	_menu = 1
 	return
 
 *onbut2
 	// Z ÅZ
+
+	df_emodesub *onaim, 14
+	dir = DIR_DOWN
 	repeat 1000
-		x = 180 + (cnt \ 10) * 10
+		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
-		df_emode 0, CHR_MON_0 + rnd(16), 10, 10, 100
+		df_emode 14, CHR_MON_0 + rnd(16), 10, 10, 100
 		df_addenemy x,y, dir, 8, 0
 	loop
 	return
@@ -201,6 +216,23 @@
 	// 
 	return
 
+*menuframe
+	df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+
+	if 1 {
+		//redraw 0
+		
+		//gmode 6,,,255
+		//color 192,192,192
+		color 0,0,32
+		grect 160,120, 0, 320 - 16,240 - 16
+
+		es_putbg 15, 16,16, 0,0
+
+		//redraw 1
+	}
+	return
+
 
 *appinit
 	// å¯â âπ
@@ -220,23 +252,30 @@
 
 	ch = CHR_KEI_D
 	es_patanim ch, 4, 0,0, frnum, WID_KEI16
-	es_link ch + 3, ch
 
 	ch = CHR_KEI_U
 	es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
-	es_link ch + 3, ch
 
 	celload "mondot.png", WID_MON32
-	es_size, 32, 32, 50
+	es_size 32, 32, 50
 
 	ch = CHR_MON_0
 	repeat 16
-		x = (cnt \ 2) * 32 * 4 / 32
-		y = (cnt / 2) * 32 / 32
+		x = (cnt \ 2) * 32 * 4
+		y = (cnt / 2) * 32
 		es_patanim ch, 4, x,y, frnum, WID_MON32
-		es_link ch + 3, ch
 		ch += 4
 	loop
+
+// ÉÅÉjÉÖÅ[
+	menubw = 36
+	menubh = 20
+	dim menubuf, menubw * menubh
+	repeat length(menubuf)
+		menubuf(cnt) = (cnt \ 15) + 32 + 256 * 4
+	loop
+	
+	es_bgmap 15, menubuf, menubw, menubh, menubw, menubh, DOTFW_FONTID
 
 	gsel 0
 
