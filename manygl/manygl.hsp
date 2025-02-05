@@ -77,9 +77,10 @@
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
 	df_pmode 0, 2, 2
 
-	df_paction *onbut1, PACTION_BUTTON
-	df_paction *onbut2, PACTION_BUTTON2
-	df_paction *onbut3, PACTION_BUTTON3
+	//df_paction *onbut1, PACTION_BUTTON
+	//df_paction *onbut2, PACTION_BUTTON2
+	//df_paction *onbut3, PACTION_BUTTON3
+	
 	//df_paction *onmiss, PACTION_MISS
 	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
@@ -116,17 +117,34 @@
 	} else {
 		fpscount += 1
 	}
+	df_mes strf("ENE %d", _dotfw_enemy), 1,4, 11
 	
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
 	df_getplayer
-	/* 左右振り
-	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
+	// 左右振り
+	dim chnos, 4
+	chnos(0) = CHR_KEI_D, CHR_KEI_U, CHR_KEI_L, CHR_KEI_R
+	d = _dotfw_mydir
+	dir4 = 0 // 下
+	if 32 <= d & d <= 96 {
+		dir4 = 3 // 右
+	} else {
+		if 96 < d & d < 160 {
+			dir4 = 1 // 上
+		} else {
+			if 160 <= d & d <= 224 {
+				// 左
+				dir4 = 2
+			}
+		}
+	}
+
 	j=(_dotfw_myani>>2)&3
 	if _dotfw_myact!=1 : j=0
-	es_chr _dotfw_cursp, i+j
-*/
+	es_chr _dotfw_cursp, chnos(dir4) + j
+
 
 	if _menu {
 		gosub *menuframe
@@ -139,7 +157,7 @@
 	spno = _dotfw_cursp
 	x = _dotfw_myx
 	y = _dotfw_myy
-	es_aim spno, x,y, 100
+	es_aim spno, x,y, 5
 	return
 
 
@@ -150,7 +168,23 @@
 	// X △
 	//mmplay SE_PUYO
 	mmplay SE_FOOT
-	_menu = 1
+
+	
+	// 0下から反時計周り
+	x = _dotfw_myx
+	y = _dotfw_myy
+	dir = DIR_LEFT
+	dir = _dotfw_mydir // ジャンプ時のみらしい
+	if dir == DIR_LEFT {
+		mv = -1
+	} else {
+		mv = 1
+	}
+	// 自分にあたるんだが;;
+	//mv = 0
+	df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
+
+	df_additem x - 32, y - 32, CHR_KEI_D, 0, DIR_DOWN, 100
 	return
 
 *onbut2
@@ -168,22 +202,9 @@
 
 *onbut3
 	// C ×
-	// 0下から反時計周り
-	x = _dotfw_myx
-	y = _dotfw_myy
-	dir = DIR_LEFT
-	dir = _dotfw_mydir // ジャンプ時のみらしい
-	if dir == DIR_LEFT {
-		mv = -1
-	} else {
-		mv = 1
-	}
-	// 自分にあたるんだが;;
-	//mv = 0
-	df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
-
-	df_additem x - 32, y - 32, CHR_KEI_D, 0, DIR_DOWN, 100
+	gosub *maintomenu
 	return
+
 
 
 *onitem
@@ -216,8 +237,52 @@
 	// 
 	return
 
+*setvol
+	vol = _volfactor * _volfactor - 1000
+	repeat 5
+		mmvol cnt, vol
+	loop
+	return
+
+*maintomenu
+	_menu = 100
+	df_paction *onbut1menu, PACTION_BUTTON
+	df_paction *onbut2menu, PACTION_BUTTON2
+	df_paction *onbut3menu, PACTION_BUTTON3
+	return
+
+*onbut1menu
+	// 未実装
+	return
+
+*onbut2menu
+	// 未実装 決定
+	return
+
+*onbut3menu
+	gosub *menutomain
+	return
+
+*menutomain
+	_menu = 0
+	df_paction *onbut1, PACTION_BUTTON
+	df_paction *onbut2, PACTION_BUTTON2
+	df_paction *onbut3, PACTION_BUTTON3
+
+	es_putbg 15, 99999, 0
+	return
+
 *menuframe
-	df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+	if _menu <= 0 {
+		goto *main
+	}
+	_munu -= 1
+	if _menu == 0 {
+		_menu = 1
+	}
+	
+	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+	df_update UPDATE_PAUSE
 
 	if 1 {
 		//redraw 0
@@ -241,10 +306,9 @@
 	mmload "se_break2.wav", SE_BREAK2, 2
 	mmload "sel.wav", SE_SEL, 3
 	mmload "se_foot.wav", SE_FOOT, 4
-	repeat 5
-		mmvol cnt, -960
-	loop
-	
+	_volfactor = 5
+	gosub *setvol
+
 	celload "kei16.png", WID_KEI16
 	es_size 16, 16, 100
 
@@ -255,6 +319,12 @@
 
 	ch = CHR_KEI_U
 	es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
+
+	ch = CHR_KEI_L
+	es_patanim ch, 4, 0,16, frnum, WID_KEI16
+
+	ch = CHR_KEI_R
+	es_patanim ch, 4, 16*4,16, frnum, WID_KEI16
 
 	celload "mondot.png", WID_MON32
 	es_size 32, 32, 50
@@ -267,6 +337,9 @@
 		ch += 4
 	loop
 
+// ボタン
+	hspvpad_set 4, -1 // チェック無効
+
 // メニュー
 	menubw = 36
 	menubh = 20
@@ -274,8 +347,13 @@
 	repeat length(menubuf)
 		menubuf(cnt) = (cnt \ 15) + 32 + 256 * 4
 	loop
+	//df_addmes "OPTION", 1,1, 14, 0
+	//df_addmes "SE VOLUME", 1,4, 13, 0
+	//df_addmes "RUN UP", 1,5, 12, 0
 	
 	es_bgmap 15, menubuf, menubw, menubh, menubw, menubh, DOTFW_FONTID
+
+	gosub *menutomain
 
 	gsel 0
 
