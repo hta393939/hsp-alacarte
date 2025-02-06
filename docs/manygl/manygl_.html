@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="en-us">
+<html lang="ja">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Type" content="text/html">
     <title>manygl_ - HSP3Dish</title>
     <style>
       body {
         font-family: arial;
         margin: 0;
-        padding: none;
+        padding: 0;
       }
 
       .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
@@ -101,16 +101,8 @@
     <div class="spinner" id='spinner'></div>
     <div class="emscripten" id="status">Downloading...</div>
 
-<span id='controls'>
-  <span><input type="hidden" id="resize"></span>
-  <span><input type="hidden" id="pointerLock"></span>
-  <span><input type="hidden" value="Fullscreen" onclick="Module.requestFullScreen(document.getElementById('pointerLock').checked, 
-                                                                            document.getElementById('resize').checked)">
-  </span>
-</span>
-
     <div class="emscripten">
-      <progress value="0" max="100" id="progress" hidden=1></progress>
+      <progress value="0" max="100" id="progress" hidden></progress>
     </div>
 
     
@@ -118,11 +110,13 @@
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     </div>
     <textarea id="output" rows="8"></textarea>
+    <button style="width: 240px; height: 50px;" id="btn_flg">センサーを許可する</button>
 
     <script type='text/javascript'>
       var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
       var spinnerElement = document.getElementById('spinner');
+      var sensor_button = 0;
 
       var Module = {
         INITIAL_MEMORY: 209715200,
@@ -203,7 +197,7 @@ Module.expectedDataFileDownloads++;
     }
     var PACKAGE_NAME = 'manygl_.data';
     var REMOTE_PACKAGE_NAME = (Module['filePackagePrefixURL'] || '') + 'manygl_.data';
-    var REMOTE_PACKAGE_SIZE = 459234;
+    var REMOTE_PACKAGE_SIZE = 412854;
     var PACKAGE_UUID = '51f84d03-0c74-4552-ac13-924e79e76977';
   
     function fetchRemotePackage(packageName, packageSize, callback, errback) {
@@ -304,26 +298,25 @@ function assert(check, msg) {
       },
     };
 
-      new DataRequest(0, 52505, 0, 0).open('GET', 'manygl_.ax');
-      new DataRequest(52505, 89128, 0, 0).open('GET', 'afont8.png');
-      new DataRequest(89128, 105913, 0, 0).open('GET', 'all.png');
-      new DataRequest(105913, 172089, 0, 0).open('GET', 'beltnojump16_16_1.tmap');
-      new DataRequest(172089, 179044, 0, 0).open('GET', 'chip16white.png');
-      new DataRequest(179044, 181574, 0, 0).open('GET', 'kei16.png');
-      new DataRequest(181574, 187788, 0, 0).open('GET', 'kei32.png');
-      new DataRequest(187788, 217179, 0, 0).open('GET', 'kei3264.png');
-      new DataRequest(217179, 251082, 0, 0).open('GET', 'mapbg.png');
-      new DataRequest(251082, 277577, 0, 0).open('GET', 'mondot.png');
-      new DataRequest(277577, 280009, 0, 0).open('GET', 'sel.wav');
-      new DataRequest(280009, 296777, 0, 0).open('GET', 'semai1.tmap');
-      new DataRequest(296777, 300613, 0, 0).open('GET', 'se_break2.wav');
-      new DataRequest(300613, 312259, 0, 0).open('GET', 'se_click.wav');
-      new DataRequest(312259, 316911, 0, 0).open('GET', 'se_foot.wav');
-      new DataRequest(316911, 319121, 0, 0).open('GET', 'se_puyo.wav');
-      new DataRequest(319121, 336979, 0, 0).open('GET', 'shootdot.png');
-      new DataRequest(336979, 422582, 0, 0).open('GET', 'tamadot.png');
-      new DataRequest(422582, 441312, 0, 0).open('GET', 'tamane16.png');
-      new DataRequest(441312, 459234, 0, 0).open('GET', 'vpad.png');
+      new DataRequest(0, 39577, 0, 0).open('GET', 'manygl_.ax');
+      new DataRequest(39577, 76200, 0, 0).open('GET', 'afont8.png');
+      new DataRequest(76200, 92985, 0, 0).open('GET', 'all.png');
+      new DataRequest(92985, 159161, 0, 0).open('GET', 'beltnojump16_16_1.tmap');
+      new DataRequest(159161, 166311, 0, 0).open('GET', 'chip16white.png');
+      new DataRequest(166311, 168841, 0, 0).open('GET', 'kei16.png');
+      new DataRequest(168841, 175055, 0, 0).open('GET', 'kei32.png');
+      new DataRequest(175055, 204446, 0, 0).open('GET', 'kei3264.png');
+      new DataRequest(204446, 230941, 0, 0).open('GET', 'mondot.png');
+      new DataRequest(230941, 233373, 0, 0).open('GET', 'sel.wav');
+      new DataRequest(233373, 237209, 0, 0).open('GET', 'se_break2.wav');
+      new DataRequest(237209, 248855, 0, 0).open('GET', 'se_click.wav');
+      new DataRequest(248855, 253507, 0, 0).open('GET', 'se_foot.wav');
+      new DataRequest(253507, 255717, 0, 0).open('GET', 'se_puyo.wav');
+      new DataRequest(255717, 273575, 0, 0).open('GET', 'shootdot.png');
+      new DataRequest(273575, 290599, 0, 0).open('GET', 'survive16.tmap');
+      new DataRequest(290599, 376202, 0, 0).open('GET', 'tamadot.png');
+      new DataRequest(376202, 394932, 0, 0).open('GET', 'tamane16.png');
+      new DataRequest(394932, 412854, 0, 0).open('GET', 'vpad.png');
 
 
     function processPackageData(arrayBuffer) {
@@ -345,15 +338,14 @@ function assert(check, msg) {
           DataRequest.prototype.requests["kei16.png"].onload();
           DataRequest.prototype.requests["kei32.png"].onload();
           DataRequest.prototype.requests["kei3264.png"].onload();
-          DataRequest.prototype.requests["mapbg.png"].onload();
           DataRequest.prototype.requests["mondot.png"].onload();
           DataRequest.prototype.requests["sel.wav"].onload();
-          DataRequest.prototype.requests["semai1.tmap"].onload();
           DataRequest.prototype.requests["se_break2.wav"].onload();
           DataRequest.prototype.requests["se_click.wav"].onload();
           DataRequest.prototype.requests["se_foot.wav"].onload();
           DataRequest.prototype.requests["se_puyo.wav"].onload();
           DataRequest.prototype.requests["shootdot.png"].onload();
+          DataRequest.prototype.requests["survive16.tmap"].onload();
           DataRequest.prototype.requests["tamadot.png"].onload();
           DataRequest.prototype.requests["tamane16.png"].onload();
           DataRequest.prototype.requests["vpad.png"].onload();
@@ -379,10 +371,9 @@ function assert(check, msg) {
         ENV.HSP_SY = "480";
         ENV.HSP_AUTOSCALE = "0";//スケーリングモード
         ENV.HSP_FPS = "0";//フレームレート
-        //ENV.HSP_LIMIT_STEP = "100000";//ブラウザに処理を返すまでの実行ステップ数
         ENV.HSP_LIMIT_STEP = "30000";//ブラウザに処理を返すまでの実行ステップ数
-        //ENV.HSP_LIMIT_STEP = "60000";//ブラウザに処理を返すまでの実行ステップ数
-        //ENV.HSP_LIMIT_STEP = "15000";//ブラウザに処理を返すまでの実行ステップ数
+        ENV.HSP_SENSOR = String( sensor_button );//センサーを使用する
+
   }
   if (Module['calledRun']) {
     runWithFS();
@@ -395,8 +386,8 @@ function assert(check, msg) {
 
 
 				var fixAudioContext = function (e) {
-				        SDL.openAudioContext();
-					var context = SDL.audioContext;
+				        //SDL.openAudioContext();
+					var context = Module['SDL2'].audioContext;
 					if (context) {
 						// Create empty buffer
 						var buffer = context.createBuffer(1, 1, 22050);
@@ -425,6 +416,21 @@ function assert(check, msg) {
 					target.removeEventListener('touchend', fixAudioContext);
 					target.removeEventListener('mousedown', fixAudioContext);
 				};
+				var addpermission = function (e) {
+				    if ( typeof( DeviceMotionEvent ) !== "undefined" && typeof( DeviceMotionEvent.requestPermission ) === "function" ) {
+				        // (optional) Do something before API request prompt.
+				        DeviceMotionEvent.requestPermission()
+			            .then( response => {
+			          	  // (optional) Do something after API prompt dismissed.
+				            if ( response == "granted" ) {
+				                    // do something for 'e' here.
+				            }
+				        })
+			            .catch( console.error )
+				    }
+				    //target.removeEventListener("click", addpermission);
+				}
+
 				//var target = document.getElementById('canvas');
 				var target = document;
 				// iOS 6-8
@@ -433,9 +439,23 @@ function assert(check, msg) {
 				target.addEventListener('touchend', fixAudioContext);
 				target.addEventListener('mousedown', fixAudioContext);
 
+				if ( sensor_button == 0 ) {
+					btn_flg.style.display = 'none';
+				} else {
+				    const btn_flg = document.getElementById('btn_flg'); //for iOS
+					if(window.DeviceMotionEvent){
+					 if(DeviceMotionEvent.requestPermission){
+					  btn_flg.addEventListener( "click", addpermission );
+					 }else{
+					  btn_flg.style.display = 'none';
+					 }
+					}
+				}
 
     </script>
-    <script async type="text/javascript" src="hsp3dishw.js"></script>
-  <p><font size="2" color="#404040">powered by <a href="https://hsp.tv/make/hsp3dish.html" target="_blank">hsp3dishw.js</a> / OpenHSP</font></p>
+    <script async src="hsp3dishw.js"></script>
+  <p style="font-size: small; color: rgb(64, 64, 64);">powered by <a href="https://hsp.tv/make/hsp3dish.html" target="_blank">hsp3dishw.js</a> / OpenHSP</p>
+  <input id="dummy" type="file" value="open file" accept="image/*" />
+  <input id="cam" type="file" value="cam?" accept="image/*" capture="environment" />
   </body>
 </html>

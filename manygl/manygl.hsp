@@ -4,6 +4,13 @@
 
 #define BGFRONT_ID (2)
 
+#const FONT_WHITE 0
+#const FONT_DBLUE 1
+#const FONT_GREEN 2
+#const FONT_LIME 3
+#const FONT_RED 8
+#const FONT_GRAY 14
+
 #const SE_PUYO 0
 #const SE_CLICK 1
 #const SE_BREAK2 2
@@ -28,8 +35,6 @@
 	if _isem == 0 {
 		chdir "data"
 	}
-// 敵弾は上からぶつかると消える
-	;	マップを使ったサンプル4
 
 	//df_config "ps2 Z150"
 	df_config "X320 Y240 Z200 vpad"
@@ -37,88 +42,33 @@
 	//df_config "X256 Y192 Z200"
 	df_reset
 
+	_pxw = 320
+	_pxh = 240
+
 	gosub *appinit
 
 
 
-
-	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
-	df_loadbgmap MYMAP_ID, "survive16.tmap"	; マップファイル読み込み
-	mapsx = _dotfw_curmapx			; マップサイズXを取得
-	mapsy = _dotfw_curmapy			; マップサイズYを取得
-	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
-
-	//df_bgpoint 0, 10,10
-
-	// mapaction セットしなかったらショットも撃てる
-	// セットしないとフルスクロールしない
-	df_mapaction MYMAP_ID, 0, 6 ; 重力無し
-	//df_mapaction MYMAP_ID, 60, 6 ; 重力とジャンプ(80, 8とか)
-
-	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
-	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
-
-
-
-	if 0 {
-		df_celload bgcel,"tamadot.png"		; キャラクターの画像ファイル
-		es_sizeex 64,64,,40,40,12,24		; キャラクターのサイズ指定
-		es_patanim 0, 4, 256, 64, 0, bgcel	; キャラクターの登録(0)
-		es_patanim 4, 4, 256, 192, 0, bgcel	; キャラクターの登録(4)
-	} else {
-		df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
-		es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
-		es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
-		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
-	}
+	df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
+	es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
+	es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
+	es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
 
 	//df_addplayer 300,100,0			; プレイヤーを追加
 	df_addplayer 300,100, CHR_KEI_D
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
 	df_pmode 0, 2, 2
-
-	//df_paction *onbut1, PACTION_BUTTON
-	//df_paction *onbut2, PACTION_BUTTON2
-	//df_paction *onbut3, PACTION_BUTTON3
 	
 	//df_paction *onmiss, PACTION_MISS
 	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
-
-	if 1 {
-		chno = 0
-		df_emode 0, chno, 60, 100, 1, 0, 0
-
-		// 進行方向に画面内に入るように画面外から出現
-		//df_enemygen DIR_LEFT, 10, 60, 0
-	}
-
-	if 1 { // 画面外で消える
-		repeat 2
-			dir = DIR_DOWN
-			df_addenemy cnt * 50 + 200, 10, dir, 8, 0
-		loop
-	}
-
 
 	getreq ts, SYSREQ_TIMER
 	presec = ts / 1000
 	fpscount = 0
 	
 *main
-	// fps カウント
-	getreq ts, SYSREQ_TIMER
-	df_mes strf("%d", ts), 1,3
-	cursec = ts / 1000
-	if cursec > presec {
-		df_mes strf("%d [fps]", fpscount), 1,2
-		presec = cursec
-		fpscount = 0
-	} else {
-		fpscount += 1
-	}
-	df_mes strf("ENE %d", _dotfw_enemy), 1,4, 11
-	
+
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
@@ -142,13 +92,27 @@
 	}
 
 	j=(_dotfw_myani>>2)&3
-	if _dotfw_myact!=1 : j=0
+	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
 	es_chr _dotfw_cursp, chnos(dir4) + j
 
 
 	if _menu {
 		gosub *menuframe
 	} else {
+		lx = 2
+	// fps カウント
+		getreq ts, SYSREQ_TIMER
+		df_mes strf("%d", ts), lx,3
+		cursec = ts / 1000
+		if cursec > presec {
+			df_mes strf("%d [fps]", fpscount), lx,2
+			presec = cursec
+			fpscount = 0
+		} else {
+			fpscount += 1
+		}
+		df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
+	
 		df_update
 	}
 	goto *main
@@ -195,7 +159,8 @@
 	repeat 1000
 		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
-		df_emode 14, CHR_MON_0 + rnd(16), 10, 10, 100
+		shotrate = 10 * 0
+		df_emode 14, CHR_MON_0 + rnd(16), shotrate, 10, 100
 		df_addenemy x,y, dir, 8, 0
 	loop
 	return
@@ -223,8 +188,6 @@
 	return
 
 *mesrest
-	df_mes strf("12ab%c%c%c%c", 0x81, 0x91, 0xa1, 0xb1), 1,4
-	df_mes strf("24ab%c%c%c%c", 0x01, 0x11, 0x21, 0x31), 1,5
 	return
 
 
@@ -244,11 +207,20 @@
 	loop
 	return
 
+
 *maintomenu
 	_menu = 100
 	df_paction *onbut1menu, PACTION_BUTTON
 	df_paction *onbut2menu, PACTION_BUTTON2
 	df_paction *onbut3menu, PACTION_BUTTON3
+	gosub *clearmes
+
+	lx = 10
+	df_mes "OPTION", lx + 7, 3, FONT_RED
+	df_mes "SE", lx, 6, FONT_GREEN
+	df_mes "SE VOLUME", lx,8, FONT_GREEN
+	df_mes "MENU EXIT", lx,12, FONT_GREEN
+
 	return
 
 *onbut1menu
@@ -269,7 +241,7 @@
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
 
-	es_putbg 15, 99999, 0
+	gosub *clearmes
 	return
 
 *menuframe
@@ -285,15 +257,8 @@
 	df_update UPDATE_PAUSE
 
 	if 1 {
-		//redraw 0
-		
-		//gmode 6,,,255
-		//color 192,192,192
-		color 0,0,32
-		grect 160,120, 0, 320 - 16,240 - 16
-
-		es_putbg 15, 16,16, 0,0
-
+		color 224,224,224
+		grect _pxw / 2,_pxh / 2, 0, _pxw - 16, _pxh - 16
 		//redraw 1
 	}
 	return
@@ -340,21 +305,50 @@
 // ボタン
 	hspvpad_set 4, -1 // チェック無効
 
-// メニュー
-	menubw = 36
-	menubh = 20
-	dim menubuf, menubw * menubh
-	repeat length(menubuf)
-		menubuf(cnt) = (cnt \ 15) + 32 + 256 * 4
-	loop
-	//df_addmes "OPTION", 1,1, 14, 0
-	//df_addmes "SE VOLUME", 1,4, 13, 0
-	//df_addmes "RUN UP", 1,5, 12, 0
-	
-	es_bgmap 15, menubuf, menubw, menubh, menubw, menubh, DOTFW_FONTID
+// マップ
+	df_loadbgmap MYMAP_ID, "survive16.tmap"	; マップファイル読み込み
+	mapsx = _dotfw_curmapx			; マップサイズXを取得
+	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
+
+	//df_bgpoint 0, 10,10
+
+	// mapaction セットしなかったらショットも撃てる
+	// セットしないとフルスクロールしない
+	df_mapaction MYMAP_ID, 0, 6 ; 重力無し
+
+	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
+	//df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
 
 	gosub *menutomain
 
+	gosub *jsini
 	gsel 0
 
+	return
+
+*clearmes
+	spc = ""
+	repeat _pxw / 8
+		spc += " "
+	loop
+	repeat _pxh / 8
+		df_mes spc, 0,cnt
+	loop
+	return
+
+
+*jsini
+	if _isem == 0 {
+		return
+	}
+	code = ""
+	code += {"
+window.addEventListener('dblclick', ev => {
+	ev.stopPropagation();
+	ev.preventDefault();
+});
+"}
+	exec code
 	return
