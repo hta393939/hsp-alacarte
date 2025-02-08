@@ -33,6 +33,11 @@
 #const CHR_MON_0 256
 #const CHR_SHOOT_0 512
 
+#const KEY_LEFT 1
+#const KEY_UP 2
+#const KEY_RIGHT 4
+#const KEY_DOWN 8
+
 	runos = sysinfo(0)
 	_isem = 0
 	if instr(runos, 0, "Emscripten") == 0 {
@@ -74,7 +79,6 @@
 	fpscount = 0
 	
 *main
-
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
@@ -83,6 +87,7 @@
 	dim chnos, 4
 	chnos(0) = CHR_KEI_D, CHR_KEI_U, CHR_KEI_L, CHR_KEI_R
 	d = _dotfw_mydir
+	dir256 = d
 	dir4 = 0 // 下
 	if 32 <= d & d <= 96 {
 		dir4 = 3 // 右
@@ -102,10 +107,7 @@
 	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
 	es_chr _dotfw_cursp, chnos(dir4) + j
 
-
-	if _menu {
-		gosub *menuframe
-	} else {
+// ゲーム中表示
 		lx = 2
 	// fps カウント
 		getreq ts, SYSREQ_TIMER
@@ -119,23 +121,33 @@
 			fpscount += 1
 		}
 		df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
-
 		df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
+		df_mes strf("%d", 123), lx,6,FONT_WHITE
 	
-		df_update
-	}
-	goto *main
+	df_update
+
+	goto _mainlb
+
+
 
 *fire1
+	// デフォルト通常弾
 	chno = CHR_SHOOT_0 + 4
 	opt = 1
-	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	dir = DIR_LEFT
+	df_addpmis x + mv * 0, y, dir, 100 * 2, chno, opt
+	dir = DIR_RIGHT
+	df_addpmis x + mv * 0, y, dir, 100 * 2, chno, opt
 	return
 
 *fire2
+	// あんまり面白くない
 	chno = CHR_SHOOT_0 + 8
 	opt = 2
-	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	dir = dir256
+	df_addpmis x, y, dir - 16, 100 * 2, chno, opt
+	df_addpmis x, y, dir, 100 * 2, chno, opt
+	df_addpmis x, y, dir + 16, 100 * 2, chno, opt
 	return
 
 *fire3
@@ -209,8 +221,6 @@
 	repeat length(firelbs)
 		gosub firelbs(cnt)
 	loop
-
-	df_additem x - 32, y - 32, CHR_KEI_D, 0, DIR_DOWN, 100
 	return
 
 *onbut2
@@ -218,12 +228,18 @@
 
 	df_emodesub *onaim, 14
 	dir = DIR_DOWN
-	repeat 1000
+	en = _dotfw_enemy
+	if en > 800 {
+		return
+	}
+	repeat 801 - en
 		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
 		shootrate = 10 * 0
 		df_emode 14, CHR_MON_0 + rnd(16) * 4 * 0 + 16 * 4, shootrate, 10, 100
 		df_addenemy x,y, dir, 8, 0
+		spno = _dotfw_cursp
+		es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
 	loop
 	return
 
@@ -276,14 +292,18 @@
 	df_paction *onbut1menu, PACTION_BUTTON
 	df_paction *onbut2menu, PACTION_BUTTON2
 	df_paction *onbut3menu, PACTION_BUTTON3
+	df_paction *onkeymenu, PACTION_KEY
+	_prekey = 0
+	_menuy = 0
 	gosub *clearmes
 
 	lx = 10
 	df_mes "OPTION", lx + 7, 3, FONT_RED
 	df_mes "SE", lx, 6, FONT_GREEN
 	df_mes "SE VOLUME", lx,8, FONT_GREEN
-	df_mes "MENU EXIT", lx,12, FONT_GREEN
+	df_mes "RESET GAME", lx,12, FONT_GREEN
 
+	_mainlb = *menuframe
 	return
 
 *onbut1menu
@@ -303,24 +323,69 @@
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
+	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
 	gosub *clearmes
+	_mainlb = *main
+	return
+
+*onkeymenu
+	x = 0
+	y = 0
+	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
+		y += -1
+	}
+	if ((_prekey & KEY_DOWN) == 0) & ((key & KEY_DOWN) != 0) {
+		y += 1
+	}
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	df_mes " ", 20, _menuy
+
+	if y != 0 {
+		_menuy += y
+		if _menuy < 0 {
+			_menuy = 0
+		} else {
+			if _menuy > 9 {
+				_menuy = 9
+			}
+		}
+	} else {
+		if x != 0 {
+			if _menuy == 1 {
+			}
+			if _menuy == 2 {
+			}
+		}
+	}
+	df_mes ">", 20, _menuy
+
+	_prekey = key
 	return
 
 *menuframe
-	if _menu <= 0 {
-		goto *main
-	}
-	_munu -= 1
+	if key&PLAYER_KEY_ESC : end
+	
+	_menu -= 1
 	if _menu == 0 {
 		_menu = 1
 	}
 
 	es_putbg BG_MENU, 0,0, 0,0
-	
+
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
-	return
+
+	//stick key
+	df_mes strf("key, %d, flob, %d, %d", key, x, y), 1,1
+	
+	goto _mainlb
 
 
 *appinit
@@ -411,11 +476,21 @@
 	gosub *readymenubg
 
 	gosub *jsini
+
+	_mainlb = *main
+	
 	gsel 0
 
 	return
 
+*readygame
+	_exp = 0
+	_nextexp = 100
+	_level = 1
+	return
+
 *readymenubg
+	// 枠あり背景
 	_mew = _pxw / 16
 	_meh = _pxh / 16
 	dim menubgbuf, _mew * _meh
@@ -436,7 +511,6 @@
 			if y == 0 {
 				my = -1
 			} else {
-				//if y == _meh - 1 {
 				if y == _meh / 2 + 1 {
 					my = 1
 				}
@@ -455,6 +529,7 @@
 	return
 
 *clearmes
+	// テキスト面全消し
 	spc = ""
 	repeat _pxw / 8
 		spc += " "
@@ -475,6 +550,7 @@
 	code = ""
 	code += {"
 window.addEventListener('dblclick', ev => {
+	console.log('dblclick');
 	ev.stopPropagation();
 	ev.preventDefault();
 });
