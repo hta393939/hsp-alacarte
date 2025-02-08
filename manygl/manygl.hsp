@@ -20,12 +20,18 @@
 #enum WID_KEI16 = 24
 #enum WID_KEI8
 #enum WID_MON32
+#enum WID_MON16
+#enum WID_MENUCHIP
+#enum WID_SHOOT32
+
+#const BG_MENU 15
 
 #const CHR_KEI_D 160
 #const CHR_KEI_U (CHR_KEI_D+4)
 #const CHR_KEI_L (CHR_KEI_U+4)
 #const CHR_KEI_R (CHR_KEI_L+4)
-#const CHR_MON_0 192
+#const CHR_MON_0 256
+#const CHR_SHOOT_0 512
 
 	runos = sysinfo(0)
 	_isem = 0
@@ -92,6 +98,7 @@
 	}
 
 	j=(_dotfw_myani>>2)&3
+	// myact 消されてるんだがなぜだ...
 	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
 	es_chr _dotfw_cursp, chnos(dir4) + j
 
@@ -112,10 +119,62 @@
 			fpscount += 1
 		}
 		df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
+
+		df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
 	
 		df_update
 	}
 	goto *main
+
+*fire1
+	chno = CHR_SHOOT_0 + 4
+	opt = 1
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire2
+	chno = CHR_SHOOT_0 + 8
+	opt = 2
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire3
+	chno = CHR_SHOOT_0 + 12
+	opt = 3
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire4
+	chno = CHR_SHOOT_0 + 16
+	opt = 4
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire5
+	chno = CHR_SHOOT_0 + 20
+	opt = 5
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire6
+	chno = CHR_SHOOT_0 + 24
+	opt = 6
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire7
+	dir = DIR_LEFT
+	chno = CHR_SHOOT_0 + 28
+	opt = 7
+	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	return
+
+*fire8
+	dir = DIR_RIGHT
+	chno = CHR_SHOOT_0
+	opt = 8
+	df_addpmis x + 8, y, dir, 100 * 2, chno, opt
+	return
 
 *onaim
 	spno = _dotfw_cursp
@@ -146,7 +205,10 @@
 	}
 	// 自分にあたるんだが;;
 	//mv = 0
-	df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
+	//df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
+	repeat length(firelbs)
+		gosub firelbs(cnt)
+	loop
 
 	df_additem x - 32, y - 32, CHR_KEI_D, 0, DIR_DOWN, 100
 	return
@@ -159,8 +221,8 @@
 	repeat 1000
 		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
-		shotrate = 10 * 0
-		df_emode 14, CHR_MON_0 + rnd(16), shotrate, 10, 100
+		shootrate = 10 * 0
+		df_emode 14, CHR_MON_0 + rnd(16) * 4 * 0 + 16 * 4, shootrate, 10, 100
 		df_addenemy x,y, dir, 8, 0
 	loop
 	return
@@ -179,6 +241,7 @@
 
 
 *player_mapev
+	// 多分使わない
 	;	イベント処理
 	op=_dotfw_curmapattr
 	if op==0 {
@@ -224,11 +287,11 @@
 	return
 
 *onbut1menu
-	// 未実装
+	// 何もしない
 	return
 
 *onbut2menu
-	// 未実装 決定
+	// 何もしない
 	return
 
 *onbut3menu
@@ -252,15 +315,11 @@
 	if _menu == 0 {
 		_menu = 1
 	}
+
+	es_putbg BG_MENU, 0,0, 0,0
 	
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
-
-	if 1 {
-		color 224,224,224
-		grect _pxw / 2,_pxh / 2, 0, _pxw - 16, _pxh - 16
-		//redraw 1
-	}
 	return
 
 
@@ -273,6 +332,9 @@
 	mmload "se_foot.wav", SE_FOOT, 4
 	_volfactor = 5
 	gosub *setvol
+
+	ldim firelbs, 9
+	firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
 
 	celload "kei16.png", WID_KEI16
 	es_size 16, 16, 100
@@ -291,6 +353,7 @@
 	ch = CHR_KEI_R
 	es_patanim ch, 4, 16*4,16, frnum, WID_KEI16
 
+// モンスター
 	celload "mondot.png", WID_MON32
 	es_size 32, 32, 50
 
@@ -301,6 +364,28 @@
 		es_patanim ch, 4, x,y, frnum, WID_MON32
 		ch += 4
 	loop
+
+	celload "chip16white.png", WID_MON16
+	es_size 16, 16, 50
+	repeat 1
+		px = 8 * 16
+		py = 13 * 16
+		es_patanim ch, 4, px,py, frnum, WID_MON16
+		ch += 4
+	loop
+
+// ショット
+	celload "shootdot.png", WID_SHOOT32
+	es_size 32, 32, 50
+	//es_sizeex 32,32, , 16,16, 8,8, -16,-16
+	ch = CHR_SHOOT_0
+	repeat 8
+		px = cnt * 32
+		py = 5 * 32
+		es_pat ch, px, py, 0, WID_SHOOT32 
+		ch += 4
+	loop
+	
 
 // ボタン
 	hspvpad_set 4, -1 // チェック無効
@@ -323,9 +408,50 @@
 
 	gosub *menutomain
 
+	gosub *readymenubg
+
 	gosub *jsini
 	gsel 0
 
+	return
+
+*readymenubg
+	_mew = _pxw / 16
+	_meh = _pxh / 16
+	dim menubgbuf, _mew * _meh
+	repeat _meh
+		y = cnt
+		repeat _mew
+			x = cnt
+			i = x + _mew * y
+			mx = 0
+			my = 0
+			if x == 0 {
+				mx = -1
+			} else {
+				if x == _mew - 1 {
+					mx = 1
+				}
+			}
+			if y == 0 {
+				my = -1
+			} else {
+				//if y == _meh - 1 {
+				if y == _meh / 2 + 1 {
+					my = 1
+				}
+			}
+			if y > _meh / 2 + 1 {
+				mx = 0
+			}
+			val = (mx + 14) + (my + 14) * 16
+			menubgbuf(i) = val
+		loop
+	loop
+	celload "chip16white.png", WID_MENUCHIP
+	celdiv WID_MENUCHIP, 16,16, 0,0
+	// 黒透明は黒になる
+	es_bgmap BG_MENU, menubgbuf, _mew,_meh, _mew,_meh, WID_MENUCHIP, ESBGOPT_NOTRANS
 	return
 
 *clearmes
@@ -338,6 +464,9 @@
 	loop
 	return
 
+*nop
+	// 何もしないサブルーチン
+	return
 
 *jsini
 	if _isem == 0 {
