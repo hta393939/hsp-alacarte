@@ -107,27 +107,44 @@
 	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
 	es_chr _dotfw_cursp, chnos(dir4) + j
 
+	i = _exppool
+	if i > 100 {
+		i = 100
+	}
+	_exppool -= i
+	_exp += i
+	if _exp >= _nextexp {
+		_level += 1
+		_nextexp += 100
+			//gosub *levelup
+	}
+
 // ゲーム中表示
-		lx = 2
+	lx = 2
 	// fps カウント
-		getreq ts, SYSREQ_TIMER
-		df_mes strf("%d", ts), lx,3
-		cursec = ts / 1000
-		if cursec > presec {
-			df_mes strf("%d [fps]", fpscount), lx,2
-			presec = cursec
-			fpscount = 0
-		} else {
-			fpscount += 1
-		}
-		df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
-		df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
-		df_mes strf("%d", 123), lx,6,FONT_WHITE
+	getreq ts, SYSREQ_TIMER
+	df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,2
+	cursec = ts / 1000
+	if cursec > presec {
+		df_mes strf("%d [fps]", fpscount), lx,3
+		presec = cursec
+		fpscount = 0
+	} else {
+		fpscount += 1
+	}
+	df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
+	df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
+	df_mes strf("%d", 123), lx,6,FONT_WHITE
+	df_mes strf("%d", ts), lx,7
 	
 	df_update
 
 	goto _mainlb
 
+*setprun
+	val = _prunfactor
+	df_pmode 0, val, val
+	return
 
 
 *fire1
@@ -135,9 +152,9 @@
 	chno = CHR_SHOOT_0 + 4
 	opt = 1
 	dir = DIR_LEFT
-	df_addpmis x + mv * 0, y, dir, 100 * 2, chno, opt
+	df_addpmis _x - 16, _y - 16, dir, 110 * 2, chno, opt
 	dir = DIR_RIGHT
-	df_addpmis x + mv * 0, y, dir, 100 * 2, chno, opt
+	df_addpmis _x - 16, _y - 16, dir, 110 * 2, chno, opt
 	return
 
 *fire2
@@ -145,15 +162,15 @@
 	chno = CHR_SHOOT_0 + 8
 	opt = 2
 	dir = dir256
-	df_addpmis x, y, dir - 16, 100 * 2, chno, opt
-	df_addpmis x, y, dir, 100 * 2, chno, opt
-	df_addpmis x, y, dir + 16, 100 * 2, chno, opt
+	df_addpmis x, y, dir - 16, 120 * 2, chno, opt
+	df_addpmis x, y, dir, 110 * 2, chno, opt
+	df_addpmis x, y, dir + 16, 120 * 2, chno, opt
 	return
 
 *fire3
 	chno = CHR_SHOOT_0 + 12
 	opt = 3
-	df_addpmis x + mv * 8, y, dir, 100 * 2, chno, opt
+	df_addpmis x + mv * 8, y, dir, 100 * 3, chno, opt
 	return
 
 *fire4
@@ -195,29 +212,29 @@
 	es_aim spno, x,y, 5
 	return
 
+*onenedest
+	opt = 123
+	df_emode ,,,,-1,,opt
+	x = _dotfw_cx
+	y = _dotfw_cy
+	chno = CHR_STONE4
+	df_additem x, y, chno, 0, DIR_DOWN, 0
+	return
+
 
 // △ X
 // 〇 Z
 // × C
 *onbut1
 	// X △
-	//mmplay SE_PUYO
-	mmplay SE_FOOT
-
+	mmplay SE_PUYO
+	//mmplay SE_FOOT
 	
 	// 0下から反時計周り
 	x = _dotfw_myx
 	y = _dotfw_myy
-	dir = DIR_LEFT
-	dir = _dotfw_mydir // ジャンプ時のみらしい
-	if dir == DIR_LEFT {
-		mv = -1
-	} else {
-		mv = 1
-	}
-	// 自分にあたるんだが;;
-	//mv = 0
-	//df_addpmis x + mv * 8, y, dir, 100 * 2, 0, 0
+	_x = x + 8
+	_y = y + 8
 	repeat length(firelbs)
 		gosub firelbs(cnt)
 	loop
@@ -236,7 +253,12 @@
 		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
 		shootrate = 10 * 0
-		df_emode 14, CHR_MON_0 + rnd(16) * 4 * 0 + 16 * 4, shootrate, 10, 100
+		chno = CHR_MON_0 + 16 * 4 + rnd(4)
+		//chno = CHR_MONSTER1 + rnd(4) * 2
+
+		frnext = 10
+		sp100 = 50
+		df_emode 14, chno, shootrate, frnext, sp100
 		df_addenemy x,y, dir, 8, 0
 		spno = _dotfw_cursp
 		es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
@@ -253,18 +275,11 @@
 *onitem
 	spno = _dotfw_cursp
 	es_kill spno
-	return
-
-
-*player_mapev
-	// 多分使わない
-	;	イベント処理
-	op=_dotfw_curmapattr
-	if op==0 {
-		; アイテム取得
-		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
+	if 1 {
+		_exppool += 1
 	}
 	return
+
 
 *mesrest
 	return
@@ -294,14 +309,14 @@
 	df_paction *onbut3menu, PACTION_BUTTON3
 	df_paction *onkeymenu, PACTION_KEY
 	_prekey = 0
-	_menuy = 0
+	_menuy = 6
 	gosub *clearmes
 
 	lx = 10
 	df_mes "OPTION", lx + 7, 3, FONT_RED
-	df_mes "SE", lx, 6, FONT_GREEN
-	df_mes "SE VOLUME", lx,8, FONT_GREEN
-	df_mes "RESET GAME", lx,12, FONT_GREEN
+	df_mes "SE", lx, 8, FONT_GREEN
+	df_mes "SE VOLUME", lx,10, FONT_GREEN
+	df_mes "GIVE UP", lx,14, FONT_GREEN
 
 	_mainlb = *menuframe
 	return
@@ -345,26 +360,46 @@
 		x += 1
 	}
 
-	df_mes " ", 20, _menuy
+	df_mes " ", 8, _menuy
 
 	if y != 0 {
-		_menuy += y
-		if _menuy < 0 {
-			_menuy = 0
+		_menuy += y * 2
+		if _menuy < 6 {
+			_menuy = 6
 		} else {
-			if _menuy > 9 {
-				_menuy = 9
+			if _menuy > 14 {
+				_menuy = 14
 			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
 		}
 	} else {
 		if x != 0 {
-			if _menuy == 1 {
+			if _menuy == 8 {
+				if x > 0 {
+					_volswitch = 1
+				} else {
+					_volswitch = 0
+				}
 			}
-			if _menuy == 2 {
+			if _menuy == 10 {
+				_volfactor += x
+				if _volfactor < 0 {
+					_volfactor = 0
+				} else {
+					if _volfactor > 10 {
+						_volfactor = 10
+					}
+				}
+				gosub *setvol
+			}
+			if _volswitch {
+				mmplay SE_FOOT
 			}
 		}
 	}
-	df_mes ">", 20, _menuy
+	df_mes ">", 8, _menuy
 
 	_prekey = key
 	return
@@ -379,11 +414,19 @@
 
 	es_putbg BG_MENU, 0,0, 0,0
 
+	lx = 22
+	sdim offons,4
+	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
+	i = _volswitch
+	s = strf("%s %s", offons(0+1-i), offons(2+i))
+	df_mes s, lx, 8
+	df_mes strf("[ %2d]", _volfactor), lx, 10
+	df_mes "[ - ]  GIVE UP ", lx, 14
+
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
 
-	//stick key
-	df_mes strf("key, %d, flob, %d, %d", key, x, y), 1,1
+	df_mes strf("_menuy, %d", _menuy), 1,1
 	
 	goto _mainlb
 
@@ -395,6 +438,7 @@
 	mmload "se_break2.wav", SE_BREAK2, 2
 	mmload "sel.wav", SE_SEL, 3
 	mmload "se_foot.wav", SE_FOOT, 4
+	_volswitch = 1
 	_volfactor = 5
 	gosub *setvol
 
@@ -451,6 +495,9 @@
 		ch += 4
 	loop
 	
+// グローバル敵破壊時
+	df_eaction *onenedest, EACTION_DESTROY
+
 
 // ボタン
 	hspvpad_set 4, -1 // チェック無効
@@ -470,7 +517,6 @@
 	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
 	//df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
 
-
 	gosub *menutomain
 
 	gosub *readymenubg
@@ -485,8 +531,11 @@
 
 *readygame
 	_exp = 0
+	_exppool = 0
 	_nextexp = 100
 	_level = 1
+	_prunfactor = 1
+	gosub *setprun
 	return
 
 *readymenubg
