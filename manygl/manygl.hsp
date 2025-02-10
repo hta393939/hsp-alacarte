@@ -9,6 +9,7 @@
 #const FONT_GREEN 2
 #const FONT_LIME 3
 #const FONT_RED 8
+#const FONT_YELLOW 10
 #const FONT_GRAY 14
 
 #const SE_PUYO 0
@@ -32,6 +33,11 @@
 #const CHR_KEI_R (CHR_KEI_L+4)
 #const CHR_MON_0 256
 #const CHR_SHOOT_0 512
+
+#const PTS_EXP 10
+#const PTS_ENE_S 10
+#const PTS_ENE_M 50
+#const PTS_TIME 1
 
 #const KEY_LEFT 1
 #const KEY_UP 2
@@ -57,14 +63,12 @@
 	_pxh = 240
 
 	gosub *appinit
-
-
-
+/*
 	df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
 	es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
 	es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
 	es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
-
+*/
 	//df_addplayer 300,100,0			; プレイヤーを追加
 	df_addplayer 300,100, CHR_KEI_D
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
@@ -80,7 +84,14 @@
 	
 *main
 	// key は dotfw でセットされるのか
-	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
+	if key & PLAYER_KEY_ESC {
+		if _isem == 0 {
+			//end
+		}
+		gosub *gameover
+		gosub *totitle
+		goto _mainlb
+	}
 
 	df_getplayer
 	// 左右振り
@@ -134,7 +145,7 @@
 	}
 	df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
 	df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
-	df_mes strf("%d", 123), lx,6,FONT_WHITE
+	df_mes strf("SCORE: %d", _score), lx,6,FONT_WHITE
 	df_mes strf("%d", ts), lx,7
 	
 	df_update
@@ -219,6 +230,11 @@
 	y = _dotfw_cy
 	chno = CHR_STONE4
 	df_additem x, y, chno, 0, DIR_DOWN, 0
+	if 1 {
+		_score += PTS_ENE_S
+	} else {
+		_score += PTS_ENE_M
+	}
 	return
 
 
@@ -241,33 +257,36 @@
 	return
 
 *onbut2
-	// Z 〇
+	// Z 〇 メニュー開閉
+	gosub *maintomenu
+	return
 
+*onbut3
+	// C ×
 	df_emodesub *onaim, 14
 	dir = DIR_DOWN
 	en = _dotfw_enemy
-	if en > 800 {
+	if en > 400 {
 		return
 	}
-	repeat 801 - en
+	repeat 401 - en
 		x = 180 - 40 + (cnt \ 10) * 10
 		y = 200 + (cnt / 10) * 4
-		shootrate = 10 * 0
+		firerate = 10 * 0
 		chno = CHR_MON_0 + 16 * 4 + rnd(4)
 		//chno = CHR_MONSTER1 + rnd(4) * 2
 
 		frnext = 10
 		sp100 = 50
-		df_emode 14, chno, shootrate, frnext, sp100
+		opt = 0
+		df_emode 14, chno, firerate, frnext, sp100, 0, opt
 		df_addenemy x,y, dir, 8, 0
 		spno = _dotfw_cursp
 		es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
-	loop
-	return
 
-*onbut3
-	// C ×
-	gosub *maintomenu
+		//es_setpri spno, 16 // TODO: 優先順位どうすんだ
+	loop
+
 	return
 
 
@@ -278,6 +297,7 @@
 	if 1 {
 		_exppool += 1
 	}
+	_score += PTS_EXP
 	return
 
 
@@ -312,25 +332,19 @@
 	_menuy = 6
 	gosub *clearmes
 
-	lx = 10
-	df_mes "OPTION", lx + 7, 3, FONT_RED
-	df_mes "SE", lx, 8, FONT_GREEN
-	df_mes "SE VOLUME", lx,10, FONT_GREEN
-	df_mes "GIVE UP", lx,14, FONT_GREEN
-
 	_mainlb = *menuframe
 	return
 
 *onbut1menu
-	// 何もしない
+	gosub *menutomain
 	return
 
 *onbut2menu
-	// 何もしない
+	gosub *menutomain
 	return
 
 *onbut3menu
-	gosub *menutomain
+	// 何もしない
 	return
 
 *menutomain
@@ -345,6 +359,7 @@
 	return
 
 *onkeymenu
+	
 	x = 0
 	y = 0
 	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
@@ -360,7 +375,8 @@
 		x += 1
 	}
 
-	df_mes " ", 8, _menuy
+	lx = 10
+	df_mes " ", lx-2, _menuy
 
 	if y != 0 {
 		_menuy += y * 2
@@ -376,14 +392,14 @@
 		}
 	} else {
 		if x != 0 {
-			if _menuy == 8 {
+			if _menuy == 8 { // OFF ON
 				if x > 0 {
 					_volswitch = 1
 				} else {
 					_volswitch = 0
 				}
 			}
-			if _menuy == 10 {
+			if _menuy == 10 { // volume
 				_volfactor += x
 				if _volfactor < 0 {
 					_volfactor = 0
@@ -394,18 +410,34 @@
 				}
 				gosub *setvol
 			}
+			if _menuy == 14 {
+				if x > 0 {
+					gosub *gameover
+					gosub *totitle
+					_mainlb = *titleframe
+				}
+			}
+			
 			if _volswitch {
 				mmplay SE_FOOT
 			}
 		}
 	}
-	df_mes ">", 8, _menuy
+
+	df_mes ">", lx-2, _menuy
 
 	_prekey = key
 	return
 
 *menuframe
-	if key&PLAYER_KEY_ESC : end
+	if key & PLAYER_KEY_ESC {
+		if _isem == 0 {
+			//end
+		}
+		gosub *gameover
+		gosub *totitle
+		goto _mainlb
+	}
 	
 	_menu -= 1
 	if _menu == 0 {
@@ -413,6 +445,13 @@
 	}
 
 	es_putbg BG_MENU, 0,0, 0,0
+
+	lx = 10
+	df_mes "OPTION", lx + 7, 3, FONT_RED
+	df_mes "SE", lx, 8, FONT_GREEN
+	df_mes "SE VOLUME", lx,10, FONT_GREEN
+	df_mes "GIVE UP", lx,14, FONT_GREEN
+
 
 	lx = 22
 	sdim offons,4
@@ -423,11 +462,55 @@
 	df_mes strf("[ %2d]", _volfactor), lx, 10
 	df_mes "[ - ]  GIVE UP ", lx, 14
 
+
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
-	df_update UPDATE_PAUSE
+	df_update
 
 	df_mes strf("_menuy, %d", _menuy), 1,1
 	
+	goto _mainlb
+
+*totitle
+	_menu = 0
+	df_paction *onbut1title, PACTION_BUTTON
+	df_paction *onbut2title, PACTION_BUTTON2
+	df_paction *onbut3title, PACTION_BUTTON3
+	df_paction *nop, PACTION_KEY
+
+	gosub *clearmes
+	_mainlb = *titleframe
+	return
+
+*onbut1title
+	gosub *readygame
+	gosub *menutomain
+	_mainlb = *main
+	return
+
+*onbut2title
+	// Zキー 〇
+	return
+
+*onbut3title
+	return
+
+*titleframe
+	// タイトルから開始するの結構困るな
+	// 2キーにしようw
+
+	es_putbg BG_MENU, 0,0, 0,0
+
+	lx = 8
+
+	df_mes "TAMA KEI SURVIVER", lx + 4, 4, FONT_YELLOW
+	df_mes "PUSH X KEY OR A BUTTON", lx, 8, FONT_RED
+	df_vpoke lx+14,8, 128+256*0
+	if _lastscore >= 0 {
+		df_mes strf("SCORE: %d", _lastscore), lx, 12
+		df_mes strf("LEVEL: %d", _lastlevel), lx, 14
+	}
+	
+	df_update UPDATE_PAUSE
 	goto _mainlb
 
 
@@ -517,6 +600,10 @@
 	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
 	//df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
 
+// 
+	_lastscore = -1
+	_lastlevel = -1
+
 	gosub *menutomain
 
 	gosub *readymenubg
@@ -529,11 +616,17 @@
 
 	return
 
+*gameover
+	_lastscore = _score
+	_lastlevel = _level
+	return
+
 *readygame
 	_exp = 0
 	_exppool = 0
 	_nextexp = 100
 	_level = 1
+	_score = 0
 	_prunfactor = 1
 	gosub *setprun
 	return

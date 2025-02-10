@@ -5,9 +5,10 @@
     <meta http-equiv="Content-Type" content="text/html">
     <title>manygl_ - HSP3Dish</title>
     <style>
+	html {
+		touch-action: none;
+	}
       body {
-	touch-action: manipulation;
-
         font-family: arial;
         margin: 0;
         background-color: black;
@@ -15,128 +16,27 @@
       }
 
       .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      div.emscripten { text-align: center; }      
-      div.emscripten_border { border: 1px solid black; }
       /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
       canvas.emscripten { border: 0px none; }
-
-      #emscripten_logo {
-        display: inline-block;
-        margin: 0;
-      }
-
-      .spinner {
-        height: 30px;
-        width: 30px;
-        margin: 0;
-        margin-top: 20px;
-        margin-left: 20px;
-        display: inline-block;
-        vertical-align: top;
-
-        -webkit-animation: rotation .8s linear infinite;
-        -moz-animation: rotation .8s linear infinite;
-        -o-animation: rotation .8s linear infinite;
-        animation: rotation 0.8s linear infinite;
-
-        border-left: 5px solid rgb(0, 0, 0);
-        border-right: 5px solid rgb(0, 0, 0);
-        border-bottom: 5px solid rgb(0, 0, 0);
-        border-top: 5px solid rgb(0, 0, 0);
-        
-        border-radius: 100%;
-        background-color: rgb(189, 215, 46);
-      }
-
-      @-webkit-keyframes rotation {
-        from {-webkit-transform: rotate(0deg);}
-        to {-webkit-transform: rotate(360deg);}
-      }
-      @-moz-keyframes rotation {
-        from {-moz-transform: rotate(0deg);}
-        to {-moz-transform: rotate(360deg);}
-      }
-      @-o-keyframes rotation {
-        from {-o-transform: rotate(0deg);}
-        to {-o-transform: rotate(360deg);}
-      }
-      @keyframes rotation {
-        from {transform: rotate(0deg);}
-        to {transform: rotate(360deg);}
-      }
-
-      #status {
-        display: inline-block;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-left: 20px;
-        font-weight: bold;
-        color: rgb(120, 120, 120);
-      }
-
-      #progress {
-        height: 20px;
-        width: 30px;
-      }
-
-      #controls {
-        display: inline-block;
-        float: right;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-right: 20px;
-      }
-
-      #output {
-        width: 100%;
-        height: 64px;
-        margin: 0 auto;
-        margin-top: 10px;
-        display: block;
-        background-color: black;
-        color: rgb(120, 120, 120);
-        font-family: 'Lucida Console', Monaco, monospace;
-        outline: none;
-      }
     </style>
   </head>
   <body>
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
     <script type='text/javascript'>
-      var statusElement = document.getElementById('status');
-      var progressElement = document.getElementById('progress');
-      var spinnerElement = document.getElementById('spinner');
-      var sensor_button = 0;
-
       var Module = {
         INITIAL_MEMORY: 209715200,
         preRun: [],
         postRun: [],
         print: (function() {
-          var element = document.getElementById('output');
-          if (element) element.value = ''; // clear browser cache
           return function(text) {
             text = Array.prototype.slice.call(arguments).join(' ');
-            // These replacements are necessary if you render to raw HTML
-            //text = text.replace(/&/g, "&amp;");
-            //text = text.replace(/</g, "&lt;");
-            //text = text.replace(/>/g, "&gt;");
-            //text = text.replace('\n', '<br>', 'g');
             console.log(text);
-            if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight; // focus on bottom
-            }
           };
         })(),
         printErr: function(text) {
           text = Array.prototype.slice.call(arguments).join(' ');
-          if (0) { // XXX disabled for safety typeof dump == 'function') {
-            dump(text + '\n'); // fast, straight to the real console
-          } else {
-            console.error(text);
-          }
+          console.error(text);
         },
         canvas: document.getElementById('canvas'),
         setStatus: function(text) {
@@ -170,7 +70,7 @@ Module.expectedDataFileDownloads++;
     }
     var PACKAGE_NAME = 'manygl_.data';
     var REMOTE_PACKAGE_NAME = (Module['filePackagePrefixURL'] || '') + 'manygl_.data';
-    var REMOTE_PACKAGE_SIZE = 416414;
+    var REMOTE_PACKAGE_SIZE = 417061;
     var PACKAGE_UUID = '51f84d03-0c74-4552-ac13-924e79e76977';
   
     function fetchRemotePackage(packageName, packageSize, callback, errback) {
@@ -271,25 +171,25 @@ function assert(check, msg) {
       },
     };
 
-      new DataRequest(0, 42916, 0, 0).open('GET', 'manygl_.ax');
-      new DataRequest(42916, 79539, 0, 0).open('GET', 'afont8.png');
-      new DataRequest(79539, 96324, 0, 0).open('GET', 'all.png');
-      new DataRequest(96324, 162500, 0, 0).open('GET', 'beltnojump16_16_1.tmap');
-      new DataRequest(162500, 169871, 0, 0).open('GET', 'chip16white.png');
-      new DataRequest(169871, 172401, 0, 0).open('GET', 'kei16.png');
-      new DataRequest(172401, 178615, 0, 0).open('GET', 'kei32.png');
-      new DataRequest(178615, 208006, 0, 0).open('GET', 'kei3264.png');
-      new DataRequest(208006, 234501, 0, 0).open('GET', 'mondot.png');
-      new DataRequest(234501, 236933, 0, 0).open('GET', 'sel.wav');
-      new DataRequest(236933, 240769, 0, 0).open('GET', 'se_break2.wav');
-      new DataRequest(240769, 252415, 0, 0).open('GET', 'se_click.wav');
-      new DataRequest(252415, 257067, 0, 0).open('GET', 'se_foot.wav');
-      new DataRequest(257067, 259277, 0, 0).open('GET', 'se_puyo.wav');
-      new DataRequest(259277, 277135, 0, 0).open('GET', 'shootdot.png');
-      new DataRequest(277135, 294159, 0, 0).open('GET', 'survive16.tmap');
-      new DataRequest(294159, 379762, 0, 0).open('GET', 'tamadot.png');
-      new DataRequest(379762, 398492, 0, 0).open('GET', 'tamane16.png');
-      new DataRequest(398492, 416414, 0, 0).open('GET', 'vpad.png');
+      new DataRequest(0, 43563, 0, 0).open('GET', 'manygl_.ax');
+      new DataRequest(43563, 80186, 0, 0).open('GET', 'afont8.png');
+      new DataRequest(80186, 96971, 0, 0).open('GET', 'all.png');
+      new DataRequest(96971, 163147, 0, 0).open('GET', 'beltnojump16_16_1.tmap');
+      new DataRequest(163147, 170518, 0, 0).open('GET', 'chip16white.png');
+      new DataRequest(170518, 173048, 0, 0).open('GET', 'kei16.png');
+      new DataRequest(173048, 179262, 0, 0).open('GET', 'kei32.png');
+      new DataRequest(179262, 208653, 0, 0).open('GET', 'kei3264.png');
+      new DataRequest(208653, 235148, 0, 0).open('GET', 'mondot.png');
+      new DataRequest(235148, 237580, 0, 0).open('GET', 'sel.wav');
+      new DataRequest(237580, 241416, 0, 0).open('GET', 'se_break2.wav');
+      new DataRequest(241416, 253062, 0, 0).open('GET', 'se_click.wav');
+      new DataRequest(253062, 257714, 0, 0).open('GET', 'se_foot.wav');
+      new DataRequest(257714, 259924, 0, 0).open('GET', 'se_puyo.wav');
+      new DataRequest(259924, 277782, 0, 0).open('GET', 'shootdot.png');
+      new DataRequest(277782, 294806, 0, 0).open('GET', 'survive16.tmap');
+      new DataRequest(294806, 380409, 0, 0).open('GET', 'tamadot.png');
+      new DataRequest(380409, 399139, 0, 0).open('GET', 'tamane16.png');
+      new DataRequest(399139, 417061, 0, 0).open('GET', 'vpad.png');
 
 
     function processPackageData(arrayBuffer) {
@@ -345,7 +245,6 @@ function assert(check, msg) {
         ENV.HSP_AUTOSCALE = "0";//スケーリングモード
         ENV.HSP_FPS = "0";//フレームレート
         ENV.HSP_LIMIT_STEP = "30000";//ブラウザに処理を返すまでの実行ステップ数
-        ENV.HSP_SENSOR = String( sensor_button );//センサーを使用する
 
   }
   if (Module['calledRun']) {
@@ -360,7 +259,7 @@ function assert(check, msg) {
 
 				var fixAudioContext = function (e) {
 				        //SDL2.openAudioContext();
-					var context = Module['SDL2'].audioContext;
+					var context = Module?.['SDL2']?.audioContext;
 					if (context) {
 						// Create empty buffer
 						var buffer = context.createBuffer(1, 1, 22050);
@@ -411,20 +310,6 @@ function assert(check, msg) {
 				// iOS 9
 				target.addEventListener('touchend', fixAudioContext);
 				target.addEventListener('mousedown', fixAudioContext);
-
-				if ( sensor_button == 0 ) {
-					btn_flg.style.display = 'none';
-				} else {
-				    const btn_flg = document.getElementById('btn_flg'); //for iOS
-					if(window.DeviceMotionEvent){
-					 if(DeviceMotionEvent.requestPermission){
-					  btn_flg.addEventListener( "click", addpermission );
-					 }else{
-					  btn_flg.style.display = 'none';
-					 }
-					}
-				}
-
     </script>
     <script async src="hsp3dishw.js"></script>
   </body>
