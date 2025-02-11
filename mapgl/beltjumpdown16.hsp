@@ -4,6 +4,10 @@
 
 #define BGFRONT_ID (2)
 
+#const KEY_DOWN 8
+
+#const DEFAULT_ACCEL 60
+
 	chdir "data"
 // スクロール有りジャンプ有り 敵弾が壁で止まる
 	;	マップを使ったサンプル4
@@ -15,7 +19,7 @@
 	df_reset
 
 	hspvpad_set 2, -1 // 上
-	hspvpad_set 3, -1 // 下
+	//hspvpad_set 3, -1 // 下
 	hspvpad_set 4, -1 // v←
 	//hspvpad_set 5, -1 // o→Z ジャンプ
 	hspvpad_set 6, -1 // A↑ X
@@ -36,6 +40,8 @@
 
 	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
 	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+	df_paction *onplayerkey, PACTION_KEY
 
 
 	if 0 {
@@ -63,10 +69,10 @@
 	}
 
 	if 1 { // 画面外で消える
-		repeat 5
+		repeat 1
 			dir = DIR_DOWN
 			dir = DIR_AIM
-			df_addenemy cnt * 50 + 200, cnt * 50 + 100, dir, 8, 0
+			df_addenemy cnt * 50 + 200, cnt * 50 + 120, dir, 8, 0
 		loop
 	}
 
@@ -74,12 +80,13 @@
 *main
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
-	
+
 	df_getplayer
 	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
 	j=(_dotfw_myani>>2)&3
 	if _dotfw_myact!=1 : j=0
-	es_chr _dotfw_cursp, i+j
+	spno = _dotfw_cursp
+	es_chr spno, i+j
 
 	if key & PLAYER_KEY_BUTTON3 {
 		// 0下から反時計周り
@@ -93,8 +100,37 @@
 		df_addpmis _dotfw_myx + mv * 8, _dotfw_myy, dir, 100 * 2, 0, 0
 	} // 2000h C
 
+	es_get accy, spno, ESI_ACCELY
+	df_mes strf("accy, %d", accy), 20,10,10
+
 	df_update
+
+	if _drop_count > 0 {
+		_drop_count -= 1
+		// 直後に戻すのは落ちる
+		if _drop_count <= 0 {
+			es_setp spno, ESI_ACCELY, DEFAULT_ACCEL, 0 // 値をセット
+		}
+	}
 	goto *main
+
+*onplayerkey
+
+	df_mes strf("key, %d", key), 20,4, 10
+	df_mes strf("result, %08X", sp_player_myres@HSP3MOD_DOTFW), 20,5, 15
+
+	gosub *jumpact_key@HSP3MOD_DOTFW
+/*
+	if 1 {
+		if key & KEY_DOWN {
+			// 
+			sp_player_mypy += 8
+			es_setp sp_player@HSP3MOD_DOTFW,ESI_SPDY, sp_player_mypy
+		}
+	}
+*/
+	return
+
 
 *player_mapev
 	;	イベント処理
@@ -104,8 +140,30 @@
 		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
 	}
 	if op==1 {
-		goto *miss
+		//goto *miss
 
+
+
+		df_mes strf("mapattr, %d", op), 1,6
+		// 落ちない判定できるか??
+		if (key & KEY_DOWN) != 0 {
+			return
+		}
+		sp_player_myact@HSP3MOD_DOTFW = 0
+		_dotfw_myact = 0
+		spno = _dotfw_cursp
+
+		df_getaxis
+		if (_dotdw_movey > 0) | 1 {
+			_dotfw_movey = 0
+		}
+		df_putaxis
+
+		es_get accy, spno, ESI_ACCELY
+		//es_setp spno, ESI_POSY, _dotfw_cy - 10, 0 // 値をセット
+		es_setp spno, ESI_ACCELY, 0, 0 // 値をセット
+
+		_drop_count = 2
 	}
 	return
 

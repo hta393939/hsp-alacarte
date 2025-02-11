@@ -258,7 +258,8 @@
 
 *onbut2
 	// Z 〇 メニュー開閉
-	gosub *maintomenu
+	_premenu = 0 // 0: メインから
+	gosub *tomenu
 	return
 
 *onbut3
@@ -322,7 +323,7 @@
 	return
 
 
-*maintomenu
+*tomenu
 	_menu = 100
 	df_paction *onbut1menu, PACTION_BUTTON
 	df_paction *onbut2menu, PACTION_BUTTON2
@@ -336,18 +337,22 @@
 	return
 
 *onbut1menu
-	gosub *menutomain
+	// 何もしない
 	return
 
 *onbut2menu
-	gosub *menutomain
+	if _premenu == 1 {
+		gosub *totitle
+	} else {
+		gosub *tomain
+	}
 	return
 
 *onbut3menu
 	// 何もしない
 	return
 
-*menutomain
+*tomain
 	_menu = 0
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
@@ -483,12 +488,15 @@
 
 *onbut1title
 	gosub *readygame
-	gosub *menutomain
+	gosub *tomain
 	_mainlb = *main
 	return
 
 *onbut2title
 	// Zキー 〇
+	_premenu = 1
+	gosub *tomenu
+	_mainlb = *menuframe
 	return
 
 *onbut3title
@@ -503,8 +511,8 @@
 	lx = 8
 
 	df_mes "TAMA KEI SURVIVER", lx + 4, 4, FONT_YELLOW
-	df_mes "PUSH X KEY OR A BUTTON", lx, 8, FONT_RED
-	df_vpoke lx+14,8, 128+256*0
+	df_mes strf("PUSH X KEY OR %c BUTTON", 256-1), lx, 8, FONT_RED
+	df_vpoke lx+14,8, 255-0+256*FONT_RED
 	if _lastscore >= 0 {
 		df_mes strf("SCORE: %d", _lastscore), lx, 12
 		df_mes strf("LEVEL: %d", _lastlevel), lx, 14
@@ -524,6 +532,7 @@
 	_volswitch = 1
 	_volfactor = 5
 	gosub *setvol
+	mmplay SE_FOOT
 
 	ldim firelbs, 9
 	firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
@@ -603,8 +612,10 @@
 // 
 	_lastscore = -1
 	_lastlevel = -1
+	_premenu = 1 // 1: title
+	_premenu = 0
 
-	gosub *menutomain
+	gosub *tomain
 
 	gosub *readymenubg
 
@@ -691,11 +702,10 @@
 	}
 	code = ""
 	code += {"
-window.addEventListener('dblclick', ev => {
-	console.log('dblclick');
-	ev.stopPropagation();
-	ev.preventDefault();
-});
+console.log('js');
 "}
 	exec code
 	return
+
+// バグ: esc でメニュー移動したとき決定で復帰できない
+// バグ: 移動速度
