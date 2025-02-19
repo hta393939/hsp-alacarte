@@ -53,7 +53,9 @@
 		df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
 		es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
 		es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
-		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
+		//es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
+		df_celload bgcel, "kei16.png"
+		es_patanim 4, 4, 0,32, 0, bgcel	; キャラクターの登録(4)
 	}
 
 

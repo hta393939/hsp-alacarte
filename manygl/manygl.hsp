@@ -73,7 +73,10 @@
 	df_addplayer 300,100, CHR_KEI_D
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
 	df_pmode 0, 2, 2
-	
+
+	es_setp _dotfw_cursp, ESI_POSX, 160*65536
+	es_setp _dotfw_cursp, ESI_POSY, 160*65536
+
 	//df_paction *onmiss, PACTION_MISS
 	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
@@ -116,6 +119,7 @@
 	j=(_dotfw_myani>>2)&3
 	// myact 消されてるんだがなぜだ...
 	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
+	j = (_dotfw_frame / 16) & 3
 	es_chr _dotfw_cursp, chnos(dir4) + j
 
 	i = _exppool
@@ -469,7 +473,7 @@
 
 
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
-	df_update
+	df_update UPDATE_PAUSE
 
 	df_mes strf("_menuy, %d", _menuy), 1,1
 	
@@ -546,7 +550,8 @@
 	es_patanim ch, 4, 0,0, frnum, WID_KEI16
 
 	ch = CHR_KEI_U
-	es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
+	//es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
+	es_patanim ch, 4, 0,32, frnum, WID_KEI16
 
 	ch = CHR_KEI_L
 	es_patanim ch, 4, 0,16, frnum, WID_KEI16
@@ -595,7 +600,9 @@
 	hspvpad_set 4, -1 // チェック無効
 
 // マップ
-	df_loadbgmap MYMAP_ID, "survive16.tmap"	; マップファイル読み込み
+	//df_loadbgmap MYMAP_ID, "survive16.tmap"	; マップファイル読み込み
+	//df_loadbgmap MYMAP_ID, "size32_16.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "size16_16.tmap"	; マップファイル読み込み
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
