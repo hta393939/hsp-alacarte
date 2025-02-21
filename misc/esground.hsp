@@ -1,0 +1,33 @@
+#include "hsp3dish.as"
+
+#const BG_MAIN 0
+
+	es_ini
+
+// bg ‚Ì“o˜^
+
+// ƒLƒƒƒ‰‚Ì“o˜^
+	//myspno
+
+// ƒLƒƒƒ‰‚ÌƒŠƒ“ƒN
+	es_bglink BG_MAIN, ESSPMAPHIT_BGHIT
+	es_setparent myspno, BG_MAIN, 1 
+
+
+*main
+	redraw 0
+
+	// ‰º‚Ì”»’è
+	//es_bghit spno
+
+	es_get result, myspno, ESI_PRGCOUNT
+	
+	es_get result, myspno, ESI_MOVERES
+	
+
+	es_draw
+
+	redraw 1
+	await 1000/60
+	goto *main
+
