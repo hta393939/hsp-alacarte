@@ -6,7 +6,7 @@ material mtl00000 {
   u_inverseTransposeWorldViewMatrix = INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX
   u_specularExponent = 20
 
-  sampler u_diffuseTexture {
+  sampler u_matcap {
     mipmap = true
     wrapS = CLAMP
     wrapT = CLAMP

@@ -4,7 +4,7 @@
 
 #include "hgimg4.as"
 
-#define VER "typeA 0.5.4"
+#define VER "typeA 0.6.4"
 #const DEBUG 0
 
 //#const MAX_COUNT_SEC 20
@@ -103,6 +103,8 @@
 
 	_theme = 0xf8f8f0 // テーマカラー
 	_frame = 0xf8f8f8 // 枠カラー
+
+	title strf("nicopachi %s", VER)
 
 	gosub *init01
 	gosub *make01
