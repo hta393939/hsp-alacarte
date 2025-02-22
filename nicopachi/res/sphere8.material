@@ -12,7 +12,7 @@ material mtl00000 {
     wrapT = CLAMP
     minFilter = LINEAR_MIPMAP_LINEAR
     magFilter = LINEAR
-    path = matcap22.png
+    path = res/matcap22.png
   }
 
   renderState {
