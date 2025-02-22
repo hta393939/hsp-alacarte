@@ -4,17 +4,7 @@ material mtl00000 {
   u_cameraPosition = CAMERA_WORLD_POSITION
   u_diffuseColor = 0.764, 0.050, 0.137, 1.0
   u_inverseTransposeWorldViewMatrix = INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX
-  u_matrixPalette = MATRIX_PALETTE
   u_specularExponent = 20
-
-  sampler u_diffuseTexture {
-    mipmap = true
-    wrapS = CLAMP
-    wrapT = CLAMP
-    minFilter = LINEAR_MIPMAP_LINEAR
-    magFilter = LINEAR
-    path = sphere8.png
-  }
 
   renderState {
     cullFace = true
