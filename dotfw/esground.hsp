@@ -1,4 +1,4 @@
-#include "hsp3dish.as"
+#include "dotfw.as"
 
 #const BG_MAIN 0
 

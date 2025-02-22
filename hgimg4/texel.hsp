@@ -1,0 +1,81 @@
+#include "hgimg4.as"
+#const BUF_ID 2
+	w_tex = 256
+	h_tex = 256
+	w_num = 256
+	h_num = 64
+	gpusermat id_mtl, "res/shaders/_fetch.vert", "res/shaders/_fetch.frag"
+	gpmatprm4 id_mtl, "u_coeff", 1.0 / double(w_num - 1), 1.0 / double(h_num - 1), 1.0, 1.0
+// 情報バッファ
+	buffer BUF_ID, w_tex, h_tex, screen_offscreen
+	font "", 48
+	gpmatprmp id_mtl, "u_infotexture", GPOBJ_ID_SRCFLAG + BUF_ID
+// モデル作成
+	gosub *make01
+	setscale id, double(w_num) * 0.2, double(h_num) * 0.2, 8
+
+	repeat
+		getreq fps, SYSREQ_FPS
+		getreq timer, SYSREQ_TIMER
+
+		ang = double(cnt) * 0.004
+// 情報テクスチャを描画する
+		gsel BUF_ID
+		redraw 0
+		color 0, 0, 0
+		boxf 0,0, w_tex, h_tex
+// テクスチャ参照は下からなので下方へ h_tex - h_num だけオフセットする
+		repeat 64
+			x = cnt + 64
+			y = (h_tex - h_num)
+			lv = 192 * (cnt & 1)
+			color lv, lv, lv
+			boxf x, y, x, y + h_num
+		loop
+		color 128, 128, 128
+		pos sin(ang) * 60 + 80, (h_tex - h_num) + 8
+		mes "●"
+		pos 8, (h_tex - h_num)
+		color 255, 255, 255
+		mes "" + fps + ", " + ((timer \ 1000000) / 100)
+		redraw 1
+// メイン3D描画
+		gsel 0
+		redraw 0
+		setang id, -M_PI * 0.16, sin(ang) * 0.5, 0.0
+		gpdraw
+		redraw 1
+
+		await 1000/60
+	loop
+
+*make01
+	gpmeshclear
+	nx = 0.0
+	ny = 0.0
+	nz = 1.0
+	repeat h_num
+		i = cnt
+		repeat w_num
+			j = cnt
+			x = j
+			y = i
+			z = 0
+			gpmeshadd index, x,y,z, nx,ny,nz
+		loop
+	loop
+
+	repeat h_num-1
+		i = cnt
+		repeat w_num-1
+			j = cnt
+			v0 = i * w_num + j
+			v1 = v0 + 1
+			v2 = v0 + w_num
+			v3 = v2 + 1
+			gpmeshpolygon v0, v1, v2, v3
+		loop
+	loop	
+	
+	gpmesh id, , id_mtl
+	return
