@@ -1,0 +1,39 @@
+material material0 {
+    u_worldMatrix = WORLD_MATRIX
+    u_viewMatrix = VIEW_MATRIX
+    u_projectionMatrix = PROJECTION_MATRIX
+
+    u_matrixPalette = MATRIX_PALETTE
+
+    u_speed = 240.0
+    u_spread = 4.0
+    u_side = 2.0
+
+    technique {
+        pass {
+            vertexShader = res/shaders/sparkler.vert
+            fragmentShader = res/shaders/sparkler.frag
+            defines = SKINNING;SKINNING_JOINT_COUNT 1;TEXPARTICLE
+
+            sampler u_diffuseTexture {
+                path = res/sparkler.png
+                mipmap = true
+                wrapS = CLAMP
+                wrapT = CLAMP
+                minFilter = LINEAR_MIPMAP_LINEAR
+                magFilter = LINEAR
+            }
+
+            renderState {
+                cullFace = false
+                depthTest = true
+		depthWrite = false
+		blend = true
+		blendSrc = SRC_ALPHA
+		blendDst = ONE_MINUS_SRC_ALPHA
+            }
+        }
+    }
+}
+
+

@@ -1,0 +1,1296 @@
+/**
+ * @file a_pachi06.hsp
+ */
+
+#include "hgimg4.as"
+
+#define VER "typeA 0.5.4"
+#const DEBUG 0
+
+//#const MAX_COUNT_SEC 20
+#const MAX_COUNT_SEC 120
+
+#const UPPER_ARCH_OFFSET_Y 0.0
+// 元のサイズ
+//#const UPPER_ARCH_OFFSET_Y 14.0
+
+#define GRAVY (-9.8 * 3.0)
+//#define GRAVY (-9.8*0.1)
+
+#const EX 0
+#const EY 1
+#const EZ 2
+#const ENX 3
+#const ENY 4
+#const ENZ 5
+#const EU 6
+#const EV 7
+#const EMAX 8
+
+#const CALC4 (GPDRAW_OPT_OBJUPDATE)
+#const DRAW4 (GPDRAW_OPT_DRAWSCENE | GPDRAW_OPT_DRAW2D)
+#const LATE4 (GPDRAW_OPT_DRAWSCENE_LATE | GPDRAW_OPT_DRAW2D_LATE)
+
+#const BELTX (128 + 32)
+#const PADDING 64
+#const TEXTX 616
+
+#const ANG90E (M_PI * 0.499)
+
+#const COLI_BALL 0x01
+#const COLI_CATCHER 0x10
+
+#const LOGICW 768
+#const LOGICH 432
+
+#const RANDOM_PIN 12
+
+#const ENTERX (600 + 64 + 32 + 16)
+#const ENTERY (LOGICH - 128 - 16)
+#const ESCX (600 + 64)
+#const ESCY (LOGICH - 64)
+
+#const BIT_ENTER 0x1
+#const BIT_ESC 0x2
+#const BIT_POW 0x4
+
+#const ST_START 0x1
+#const ST_TITLE 0x2
+//#const ST_READY 0x4
+#const ST_GO 0x8
+#const ST_GAMEOVER 0x10
+
+#const FLS_CLOSE 0
+#const FLS_OPEN 1
+
+#const LOWERLIMIT (LOGICH - PADDING)
+
+#const LOW_FRIC 0.0
+
+
+#const CE_SCORE 0
+#const CE_STATUS 1
+#const CE_TIMER 2
+#const CE_HIT 3
+#const CE_L 4
+#const CE_R 5
+#const CE_MAX 6
+
+// for warning
+	fps = 0 : key = 0 : prex = 0 : prey = 0 : result = 0
+	hit = 0 : timer = 0
+	_bonus = 0
+	_platform = 0 : _restcount = 0 : _maxscore = 0 : _ballstock = 0
+	_startts = 0
+	pong = 0.0
+	enterescid = -1 : hitid = -1 : spid = -1 : captionid = -1
+	idc1 = -1
+	one = "" : s = "" : st = "" : _data = ""
+//	sdim ss,64,64
+	dim ts, 4
+	dim _catchers, CE_MAX, 6
+
+	_calcfps = 30
+	maxid = -1
+// 60fps時
+//	_powerindex = 187
+// 30fps時
+//	_powerindex = 220
+
+	_status = ST_START
+
+	getreq _platform, SYSREQ_PLATFORM
+
+	_theme = 0xf8f8f0 // テーマカラー
+	_frame = 0xf8f8f8 // 枠カラー
+
+	gosub *init01
+	gosub *make01
+
+// 物理飛ぶので
+	gpdraw
+
+	_enterpre = 0
+	_escpre = 0
+	_powpre = 0
+
+	pre = 1
+	camflag = 1 // 初回わざと 1
+	prehead = M_PI * 0.0 / 180.0
+	prepitch = - M_PI * 0.0 / 180.0
+	head = prehead
+	pitch = prepitch
+// 元サイズ
+//	cam_r = 100.0
+	cam_r = 64.0	
+	look = 0.0, 0.0 - 2.0, 0.0
+
+	pos LOGICW, LOGICH
+	mes VER
+
+	gosub *gametitle01
+
+	repeat
+		getreq fps, SYSREQ_FPS
+		getreq timer, SYSREQ_TIMER
+
+		enterdown = 0 // 今回ダウンしたかどうか
+		escdown = 0 // 今回ダウンしたかどうか
+		powdown = 0
+// sel は上がってる下がってるかどうか別にして選択されている
+		entersel = 0
+		escsel = 0
+		powsel = 0
+
+		enterexist = 0
+		escexist = 0
+
+		mtlist touches
+		touchnum = stat
+		repeat touchnum
+			mtinfo ts, touches.cnt
+
+			ist = ts.0
+			area = _checkarea(ts.1, ts.2)
+			if area & BIT_ENTER {
+				enterexist = 1
+				entersel = 1
+
+				if ist {
+					if _enterpre == 0 {
+						enterdown = 1
+					}
+					_enterpre = 1
+				} else {
+					_enterpre = 0
+				}
+			}
+			if area & BIT_ESC {
+				escexist = 1
+				escsel = 1
+
+				if ist {
+					if _escpre == 0 {
+						escdown = 1
+					}
+					_escpre = 1
+				} else {
+					_escpre = 0
+				}
+			}
+			if area & BIT_POW {
+				powsel = 1
+
+				if ist {
+					powdown = 1
+					
+					_powerindex = ts.2
+					gosub *calcpower01
+				}
+			}
+		loop
+
+		if enterexist == 0 {
+			_enterpre = 0
+			enterdown = 0
+			entersel = 0
+		}
+		if escexist == 0 {
+			_escpre = 0
+			escdown = 0
+			escsel = 0
+		}
+
+// マウスカーソル用選択判定
+			mx = mousex
+			my = mousey
+
+			area = _checkarea(mx, my)
+
+			if area & BIT_ENTER {
+				entersel = 1
+			}
+			if area & BIT_ESC {
+				escsel = 1
+			}
+			if area & BIT_POW {
+				powsel = 1
+			}
+
+
+
+//// カメラ用ルーチン
+
+// ホイール有効時だけ
+		mw = 0
+		if DEBUG > 0 {
+			mw = mousew
+			cam_r += double(mw) * 0.05
+			if cam_r < 0.02 {
+				cam_r = 0.02
+			}
+		}
+
+		if pre {
+// 直前はダウン
+			if key & 256 {
+				dx = double(mx - prex) * 0.01
+				dy = double(my - prey) * 0.01
+
+				head = prehead - dx
+				pitch = prepitch - dy
+				camflag = 1
+				pre = 1
+
+				if mx < BELTX {
+					powdown = 1
+					_powerindex = my
+					gosub *calcpower01
+				} else {
+					if area & BIT_ENTER {
+						enterdown = 1
+						result = _display()
+					}
+					if area & BIT_ESC {
+						escdown = 1
+					}
+				}
+			} else {
+				pre = 0
+			}
+		} else {
+// 直前はダウンではない
+			if key & 256 {
+				prehead = head
+				prepitch = pitch
+				prex = mx
+				prey = my
+				pre = 1
+				//title "" + mx + ", " + my
+
+				if mx < BELTX {
+					powdown = 1
+					_powerindex = my
+					gosub *calcpower01
+				} else {
+					if area & BIT_ENTER {
+						enterdown = 1
+					}
+					if area & BIT_ESC {
+						escdown = 1
+					}
+				}
+			}
+		}
+
+//// 描画
+		redraw 0
+
+		color 3, 110, 184
+		grect LOGICW / 2, LOGICH / 2, 0.0, LOGICW, LOGICH
+
+		gosub *checkcatcher01
+
+		if DEBUG > 0 {
+			if camflag {
+				if pitch > ANG90E {
+					pitch = ANG90E
+				} else {
+					if pitch < -ANG90E {
+						pitch = -ANG90E
+					}
+				}
+			
+				x = cam_r * cos(pitch) * sin(head)
+				y = - cam_r * sin(pitch)
+				z = cam_r * cos(pitch) * cos(head)
+				setpos GPOBJ_CAMERA, x + look.0, y + look.1, z + look.2
+				gplookat GPOBJ_CAMERA, look.0, look.1, look.2
+			}
+		}
+
+// 打ち出し
+		if _status == ST_GO {
+			if (cnt \ (_calcfps / 2) == 0) {
+				gosub *shotball01
+			}
+		}
+
+		gosub *calcrest01
+
+//// ステータスごとの判定
+		if enterdown {
+			result = _display()
+		}
+//		if _status == ST_START {
+//		}
+		if _status == ST_TITLE {
+			_restcount = MAX_COUNT_SEC
+			if powdown {
+				gosub *gamestart01
+			}
+		}
+		if _status == ST_GO {
+			if escdown {
+				gosub *gameover01
+			}
+			if _restcount <= 0 {
+				gosub *gameover01
+			}
+		}
+		if _status == ST_GAMEOVER {
+			_restcount = 0
+
+			diff = timer - _startts
+			if diff >= 1000 * 5 {
+				gosub *gametitle01
+			}
+		}
+
+		gpdraw CALC4
+
+//// スプライト群
+
+// 目盛り線
+		cx = BELTX / 2
+		repeat 3
+			y = 64, LOGICH / 2, LOGICH-PADDING
+			pos cx - 32, y.cnt
+			celput enterescid, 12
+			pos cx + 32, y.cnt
+			celput enterescid, 13
+		loop
+		
+// つまみ
+		pos cx, _powerindex
+		celput enterescid, 6
+
+		if _status == ST_TITLE {
+// タッチスタート
+			if (cnt \ (_calcfps * 3 / 2)) >= (_calcfps / 4) {
+				y = (64 + LOGICH / 2) / 2
+				pos cx - 32, y
+				celput enterescid, 14
+				pos cx + 32, y
+				celput enterescid, 15
+			}
+		}
+
+// ランキングボタン
+		x = ENTERX
+		y = ENTERY
+		index = 4
+		if enterdown {
+			x += 4
+			y += 4
+		}
+		if entersel {
+			index |= 1
+		}
+		pos x, y
+		celput enterescid, index
+
+// 停止ボタン
+		x = ESCX
+		y = ESCY
+		index = 0
+		if escdown {
+			x += 4
+			y += 4
+		}
+		if escsel {
+			index |= 1
+		}
+		pos x, y
+		celput enterescid, 2 + index
+
+		if DEBUG > 0 {
+			pos TEXTX, 8
+			color 255,255,255
+			mes VER
+			mes strf("     %3d [fps]", fps)
+			mes "..."
+			mes "..."
+			mes "..."
+			mes "_status: " + _status
+		}
+
+		if 1 {
+			pos TEXTX + 16, 32
+			celput enterescid, 10
+
+			result = _displaynum(TEXTX, 64 - 16, _maxscore, 5)
+
+			pos TEXTX + 16, 112
+			celput enterescid, 11
+
+			result = _displaynum(TEXTX, 128, _ballstock, 5)
+
+			pos TEXTX + 32, 208
+			celput enterescid, 9
+			result = _displaynum(TEXTX + 28 * 2, 192, _restcount, 3)
+		}
+
+		gpdraw DRAW4 | LATE4
+
+// タイトル
+		if _status == ST_TITLE {
+			y = LOGICH / 2 - 64
+			y = 64
+			pos LOGICW / 2, y
+//			celput captionid, 3
+			celput captionid, 2
+		}
+// ゲームオーバー
+		if _status == ST_GAMEOVER {
+//			if ((cnt \ (_calcfps * 5 / 2)) >= _calcfps / 2) {
+				pos LOGICW / 2, LOGICH / 2 - 64
+				celput captionid, 0
+//			}
+		}
+
+		redraw 1
+		await 1000 / _calcfps
+	loop
+	stop
+
+
+*gametitle01
+	_powerindex = LOGICH - 64
+	
+	_status = ST_TITLE
+	return
+
+*gamestart01
+	_ballstock = 252
+	_maxscore = _ballstock
+	_bonus = 0
+
+	_enterpre = 0
+	_escpre = 0
+	_powpre = 0
+
+	repeat 6
+		result = _flower(cnt, FLS_CLOSE)
+	loop
+
+	
+	getreq timer, SYSREQ_TIMER
+	_status = ST_GO
+	_startts = timer
+	return
+
+*gameover01
+	result = _setrecord(_maxscore)
+	
+	getreq timer, SYSREQ_TIMER
+	_status = ST_GAMEOVER
+	_startts = timer
+	return
+
+
+*calcrest01
+// 残りカウントを計算する
+	getreq timer, SYSREQ_TIMER
+	diff = timer - _startts
+	restmsec = MAX_COUNT_SEC * 1000 - diff
+	if restmsec < 0 {
+		restmsec = 0
+	}
+	_restcount = (restmsec + 999) / 1000
+
+//// ボーナス期間の判定
+	if 30 <= _restcount & _restcount <= 60 {
+		if _bonus == 0 {
+			result = _flower(3, FLS_OPEN)
+		}
+		_bonus = 1
+	} else {
+		_bonus = 0
+	}
+	
+	return
+
+
+
+*calcpower01
+// _powerindex を書き換える
+	if PADDING > _powerindex {
+		_powerindex = PADDING
+	} else {
+		if LOWERLIMIT < _powerindex {
+			_powerindex = LOWERLIMIT
+		}
+	}
+
+	return
+
+
+*checkcatcher01
+	pos 616, 160
+	num = length2(_catchers)
+	repeat num
+		c = cnt
+		scorelv = _catchers.CE_SCORE.c
+		if scorelv <= 0 {
+			continue
+		}
+		id = _catchers.CE_HIT.c
+
+		gppcontact result, id
+		//mes "result, " + result
+		if result > 0 {
+			repeat result
+				gppinfo hit, hitid, id, cnt
+				//mes "" + hit.0 + ", " + hit.1 + ", " + hit.3
+				delobj hitid
+
+				ret = _scoreball(scorelv)
+			loop
+
+			// 開いたり閉じたりの制御をする
+			status = _catchers.CE_STATUS.c
+			if c <= 1 {
+				if c == 0 {
+					result = _flower(4, FLS_OPEN)
+				} else {
+					result = _flower(2, FLS_OPEN)
+				}
+			} else { // フラワー
+				if (status & 0xff) == FLS_OPEN {
+					if _bonus {
+						if c == 3 {
+						} else {
+							result = _flower(c, FLS_CLOSE)
+						}
+					} else {
+						result = _flower(c, FLS_CLOSE)
+					}
+				} else {
+					result = _flower(c, FLS_OPEN)
+				}
+			}
+
+		}
+	loop
+	return
+
+
+*shotball01
+// 打ち出す
+	if _ballstock <= 0 {
+	}
+	if _powerindex >= LOWERLIMIT {
+		return
+	}
+
+	_ballstock -= 1
+
+// 発射
+		x = -23.4
+		y = UPPER_ARCH_OFFSET_Y + 1.0
+		gpclone id, spid
+		if id < 0 {
+			return
+		}
+		if maxid < id {
+			maxid = id
+		}
+		
+		setcoli id, COLI_BALL, COLI_CATCHER
+		setpos id, x, y, 0.0
+
+		fric = 0.0
+		mass = 2.0
+		gppbind id, mass, fric
+
+		gppset id, GPPSET_GRAVITY, 0.0, GRAVY, 0.0
+		gppset id, GPPSET_DAMPING, 0.0, 0.0
+
+		setobjmode id, OBJ_BORDER, 0
+
+/*
+// 60fps 時
+		power = 10000.0
+// -30.0 対応
+		power = 2500.0
+// 4300.0 ぐらい
+		power = 4300.0
+
+// 3000.0 ぐらいあれば飛んでいく
+		power = 3000.0
+// たまに下に落ちる
+		power = 2500.0
+// 最後まで飛ぶ
+		//power = 6000.0
+
+//		power = 5500.0
+
+// 300 考慮つきで 2500-5500 でいいか．
+//		power = 2500.0 + 3000.0 * double(LOGICH - _powerindex) / double(LOGICH)
+
+		content_h = LOGICH - PADDING - PADDING
+		power = 2500.0 + 3000.0 * double(content_h - (_powerindex - PADDING)) / double(content_h)
+*/
+
+	content_h = LOGICH - PADDING - PADDING
+	power = 1400.0 + 1400.0 * double(content_h - (_powerindex - PADDING)) / double(content_h)
+
+	power += double(rnd(300))
+	gppapply id, GPPAPPLY_FORCE, 0.0, power, 0.0
+//	gppapply id, GPPAPPLY_IMPULSE, 0.0, power, 0.0
+
+	return
+
+
+*init01
+	gpreset
+//	setcls CLSMODE_SOLID, 0x036eb8
+
+	redraw 0
+	gpdraw
+	color 3, 110, 184
+	grect LOGICW / 2, LOGICH / 2, 0.0, LOGICW, LOGICH
+	redraw 1
+	wait 1
+	
+	result = _setss()
+// 初期化
+	fov = 35.0
+
+	setangy GPOBJ_LIGHT, -45.0 * M_PI / 180.0, -45.0 * M_PI / 180.0, 0.0
+	setcolor GPOBJ_LIGHT, 0.5, 0.5, 0.5
+
+// ambient 少し増やした 2021/6/19
+	setdir GPOBJ_LIGHT, 0.75, 0.75, 0.75
+
+	if DEBUG > 0 {
+		gpnull idc1
+		gpcamera idc1, fov, 1.5, 0.5, 5000
+		//gpusecamera idc1
+	} else {
+		setpos GPOBJ_CAMERA, 0.0, -2.0, 64.0
+		gplookat GPOBJ_CAMERA, 0.0, -2.0, 0.0
+	}
+
+// 2D
+	gmode 3, 32,32, 256
+
+// 素材
+	celload "res/enteresc.png"
+	enterescid = stat
+	celdiv enterescid, 64, 64, 32, 32
+
+	celload "res/number32.png"
+	numberid = stat
+	celdiv numberid, 32, 32
+
+	celload "res/caption.png"
+	captionid = stat
+	celdiv captionid, 256, 64, 128, 32
+
+	return
+
+
+*make01
+//// 盤面作成
+
+// ピン
+	pinr = 0.2 * 1.0
+	gosub *pindata01
+	note = _data
+	notesel note
+	num = noteinfo(0)
+	_linenum = num
+
+	repeat num
+		noteget s, cnt
+		//split s,",",ss
+
+		sdim ss, 64, 5
+		index = 0
+		repeat 5
+			getstr one, s, index, ','
+			index += strsize
+			ss.cnt = one
+		loop
+
+//		dialog "" + ss.0 + " : " + ss.1 + " : " + ss.4
+//		end
+
+		top = double(ss(0))
+		if top == 0.0 {
+			continue
+		}
+		mul = top \ 100
+		
+		x = double(ss(1)) * 1.0
+		y = double(ss(2)) * 1.0
+		mx = double(ss(3))
+		my = double(ss(4))
+
+		repeat mul
+			ps = x + mx * cnt, y + my * cnt, 0.0
+			size = pinr, pinr, 1.0
+			rot = 0.0, 0.0, 45.0 * M_PI / 180.0
+			col = _rgb(255, 255, 0)
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+	loop
+
+
+	rot = 0.0, 0.0, 0.0
+
+// 玉の素 直径11mm
+	sprad = 11.0 / 10.0 * 0.5
+
+	setborder -30.0, -35.0, -10.0, 1
+
+	gpload spid, "res/sphere8"
+
+	if spid < 0 { // エラーはマイナス
+		gpgetlog st
+		dialog "" + st, 1, "" + spid
+		end
+	}
+	setpos spid, 0.0, 0.0, -5.0
+	setscale spid, 1.0, 1.0, 1.0
+
+	if 1 {
+// 奥
+		thick_r = 0.8
+		fw = 52.0 * 0.5
+		fh = 81.0 * 0.5
+			
+		repeat 4
+			qw = fw / 4.0
+
+			col = _theme
+			size = qw, fh, 1.0
+
+			ps = double(cnt * 2 - 3) * 1.0 * qw, 0.0, -thick_r - 1.0
+			if cnt == 1 | cnt == 2 {
+				size.1 = fh * 0.5
+			}
+			
+			rot = 0.0, 0.0, 0.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+
+		repeat 4
+			if cnt == 0 || cnt == 3 {
+				continue
+			}
+			qw = fw / 4.0
+
+			col = _theme
+			size = qw, fh, 1.0
+
+			ps = double(cnt * 2 - 3) * 1.0 * qw, 20.0, -thick_r - 1.0
+			if cnt == 1 | cnt == 2 {
+				size.1 = fh * 0.5
+			}
+
+			rot = 0.0, 0.0, 0.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+
+// 奥 外れ周辺
+		if 1 { // 段下
+			size = 2.0, 5.0, 1.0
+			ps = 0.0, -28.5, -thick_r - 1.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		}
+		repeat 2
+			sgn = double(cnt * 2 - 1)
+			size = 6.0, 8.0, 1.0
+			ps = sgn * 8, -28.0, -thick_r - 1.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+
+		
+// ガラス
+		lowcut = 9.0
+		col = 0xeeeeff
+		size = fw, fh - lowcut, 0.6
+		ps = 0.0, lowcut, thick_r + 1.0
+		rot = 0.0, 0.0, 0.0
+		id = _box(size, ps, rot, col, 0, fric, pong)
+		setalpha id, 64 * 0
+
+// スコア玉用斜面
+		size = 2.0 + 8.0, 0.2, 4.0
+		ps = 0.0, -fh * 0.5 - 5.0 - 1.0, 0.0
+		rot = M_PI * 10.0 / 180.0, 0.0, 0.0
+		col = _theme
+		pong = 1.0
+		id = _box(size, ps, rot, col, 0, fric, pong)
+
+// 両脇
+		pong = 1.0
+		col = _frame
+		repeat 2
+			size = 1.0, 81.0 * 0.5, 2.0
+			mx = double(cnt * 2 - 1)
+			ps = mx * 52.0 * 0.5 - mx, 0.0, 0.0
+			rot = 0.0, 0.0, 0.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+
+// 上下
+		col = _frame
+		repeat 2
+			size = 52.0 * 0.5, 1.0, 2.0
+			my = double(cnt * 2 - 1)
+			ps = 0.0, my * 81.0 * 0.5 - my, 0.0
+			rot = 0.0, 0.0, 0.0
+			id = _box(size, ps, rot, col, 0, fric, pong)
+		loop
+
+// 下の方
+		gpfloor id, fw * 2.0, 8.0, 0xff1111
+		setpos id, 0, -fh + 4.0, thick_r + 1.0
+		setangy id, 90.0 * M_PI / 180.0, 0,0
+	}
+
+// ピン
+/*
+	pinr = 0.2
+
+	repeat RANDOM_PIN
+		x = double(rnd(10) - 5) * (2.2 + 1.0) + 1.0
+		y = double(rnd(20) - 10) * 1.0
+		z = 0.0
+
+		ps = x, y, z
+		size = pinr, pinr, 1.0
+		rot = 0.0, 0.0, 45.0 * M_PI / 180.0
+		col = _rgb(255, 255, 0)
+		id = _box(size, ps, rot, col, 0, fric, pong)
+	loop
+*/
+
+	gosub *arch01
+	gosub *arch05
+
+	gosub *makecatcher01
+
+	return
+
+*arch01
+//// 上部アーチ
+	div = 36
+	div = 40
+	num = div / 2 + 1
+	rr = 24.2
+	toprr = rr
+	repeat num
+		c = cnt - (div / 4)
+		ang = double(c) * M_PI * 2.0 / double(div)
+		x = sin(ang)
+		y = cos(ang)
+		z = 0.0
+
+		x = x * rr
+		y = y * toprr + UPPER_ARCH_OFFSET_Y
+
+		size.0 = 2.4 - 0.2, 0.04 * 2.0, 1.0
+		ps.0 = x, y, z
+		rots.0 = 0.0, 0.0, -ang
+		col = 0xffffff
+		id = _box(size, ps, rots, col, 0.0, 0.0, 0.0)
+		
+	loop	
+	return
+
+*arch05
+//// 下部アーチ
+	div = 36
+	div = 40
+	num = div / 2 + 1
+	rr = 24.2
+	toprr = rr
+	repeat num
+		c = cnt - (div / 4) + div / 2
+		ang = double(c) * M_PI * 2.0 / double(div)
+		x = sin(ang)
+		y = cos(ang)
+		z = 0.0
+
+		x = x * rr
+		y = y * toprr + 14.0 - 12.0
+
+		size.0 = 2.4 - 0.2, 0.04 * 2.0, 1.0
+		ps.0 = x, y, z
+		rots.0 = 0.0, 0.0, -ang
+		if cnt == div / 4 {
+			ps.1 -= 0.5
+			rots.0 = - M_PI * 30.0 / 180.0
+		}
+		
+		col = 0xffffff
+		id = _box(size, ps, rots, col, 0.0, 0.0, 0.0)
+		
+	loop	
+	return
+
+
+*makecatcher01
+// 受け取る箱
+	repeat 5
+		c = cnt
+
+		if c >= 2 {
+
+//// チューリップ
+
+// サイズ小さくしてみる
+			size.0 = 1.0, 1.0, 0.98
+			size.0 = 0.125, 0.125, 0.125
+		/*
+		if c == 0 { // 左上
+			scorelv = 3
+			ps.0 = -7.0, 10.0, 0.0
+		}
+		if c == 1 { // 上
+			scorelv = 3
+			ps.0 = 7.0, 10.0, 0.0
+		}
+*/
+			if c == 2 {
+				scorelv = 15
+				ps.0 = -13.0, -8.0, 0.0
+			}
+			if c == 3 { // 真ん中
+				scorelv = 15
+				ps.0 = 0.0, -14.0, 0.0
+			}
+			if c == 4 {
+				scorelv = 15
+				ps.0 = 13.0, -8.0, 0.0
+			}
+			if c == 5 {
+				_catchers.CE_SCORE.c = 0
+				_catchers.CE_HIT.c = -1
+				_catchers.CE_L.c = -1
+				continue
+			}
+
+		
+			rots.0 = 0.0, 0.0, 0.0
+			col = 0xff0000
+			mass = 0.0
+			pong = 1.0
+			fric = LOW_FRIC
+			id = _box(size, ps, rots, col, mass, fric, pong)
+
+			setcoli id, COLI_CATCHER, COLI_BALL
+
+			_catchers.CE_SCORE.c = scorelv
+			_catchers.CE_STATUS.c = 0
+			_catchers.CE_TIMER.c = 0
+			_catchers.CE_HIT.c = id
+			_catchers.CE_L.c = -1
+			_catchers.CE_R.c = -1
+
+// 表示だけ
+			rots.0 = 0.0, 0.0, M_PI * 0.25
+			col = 0x00913a
+			gpbox id, 1.8, col
+			setpos id, ps.0, ps.1, ps.2
+			setangy id, rots.0, rots.1, rots.2
+//		id = _box(size, ps, rots, col, mass, fric, pong)
+
+
+			mass = 2.0
+// 羽
+			gpload id, "res/flowerl"
+			_catchers.CE_L.c = id
+
+			setpos id, ps.0, ps.1, ps.2
+
+			gppbind id, mass, fric, GPPBIND_MESH
+			gppset id, GPPSET_KINEMATIC, 1.0
+		
+// 羽
+			gpload id, "res/flowerr"
+			_catchers.CE_R.c = id
+
+			setpos id, ps.0, ps.1, ps.2
+
+			gppbind id, mass, fric, GPPBIND_MESH
+
+			gppset id, GPPSET_KINEMATIC, 1.0
+
+		} else {
+// 動かない箱
+
+// ヒットコアのサイズ小さくしてみる
+			size.0 = 0.125, 0.125, 0.125
+			if c == 0 { // 左上
+				scorelv = 3
+				ps.0 = -7.0, 7.0, 0.0
+			}
+			if c == 1 { // 上
+				scorelv = 3
+				ps.0 = 7.0, 7.0, 0.0
+			}
+		
+			rots.0 = 0.0, 0.0, 0.0
+			col = 0xff0000
+			mass = 0.0
+			pong = 1.0
+			fric = LOW_FRIC
+			id = _box(size, ps, rots, col, mass, fric, pong)
+
+			setcoli id, COLI_CATCHER, COLI_BALL
+
+			_catchers.CE_SCORE.c = scorelv
+			_catchers.CE_STATUS.c = 0
+			_catchers.CE_TIMER.c = 0
+			_catchers.CE_HIT.c = id
+			_catchers.CE_L.c = -1
+			_catchers.CE_R.c = -1
+
+// 表示だけ
+			rots.0 = 0.0, 0.0, 0.0
+			col = 0x00913a // アツマール緑
+			col = 0x036eb8 // アツマールブルー
+			gpbox id, 1.8, col
+			setpos id, ps.0, ps.1, ps.2
+
+
+			col = 0xcccccc
+			mass = 0.0
+			fric = LOW_FRIC
+			size.0 = 0.2, 1.6, 1.0
+// 羽
+			ps.0 = ps.0 - 1.2, ps.1 + 0.6, ps.2			
+			id = _box(size, ps, rots, col, mass, fric, pong)
+
+// 羽
+			ps.0 = ps.0 + 2.4, ps.1, ps.2
+			id = _box(size, ps, rots, col, mass, fric, pong)
+		}
+
+	loop
+	
+	return
+
+
+#defcfunc _flower int _c, int _open, local _id6, local _zr6
+// フラワーを開くまたは閉じる
+	_catchers.CE_STATUS._c = _open
+
+	_zr6 = 0.0
+	if _open != 0 {
+		_zr6 = M_PI * 0.25
+	}
+
+	_id6 = _catchers.CE_L._c
+	if _id6 >= 0 {
+		setangy _id6, 0.0, 0.0, _zr6
+	}
+
+	_id6 = _catchers.CE_R._c
+	if _id6 >= 0 {
+		setangy _id6, 0.0, 0.0, - _zr6
+	}
+	return 1
+
+
+#defcfunc _checkarea int _mx, int _my, local _ret, local _dx, local _dy
+	_ret = 0
+
+	if _mx < BELTX {
+		_ret |= BIT_POW
+	}
+
+	_dx = abs(_mx - ENTERX)
+	_dy = abs(_my - ENTERY)
+	if _dx < 32 & _dy < 32 {
+		_ret |= BIT_ENTER
+	}
+
+	_dx = abs(_mx - ESCX)
+	_dy = abs(_my - ESCY)
+	if _dx < 32 & _dy < 32 {
+		_ret |= BIT_ESC
+	}
+
+	return _ret
+
+
+#defcfunc _displaynum int _x8, int _y8, int _num8, int _numnum8, local _ns8, local _rest8, local _d8
+	dim _ns8, _numnum8
+	_rest8 = _num8
+	repeat _numnum8
+		i = _numnum8 - 1 - cnt
+		pos _x8 + (32-4) * i, _y8
+
+		_d8 = _rest8 \ 10
+		celput numberid, _d8
+
+// TODO:
+//		mes "" + (_rest8 \ 10)
+		_rest8 = _rest8 / 10
+	loop
+
+	return _num8
+
+
+#defcfunc _scoreball int _num9, local _x9, local _y9, local _z9, local _id9, local _mass9, local _fric9, local _power9
+
+	if _status != ST_GO {
+		return 0
+	}
+
+	_ballstock += _num9
+	if _ballstock > _maxscore {
+		_maxscore = _ballstock
+	}
+	
+	_mass9 = 1.0
+	_fric9 = LOW_FRIC
+	repeat _num9
+		gpclone _id9, spid
+		//gpclone _id9, charaid
+		if _id9 < 0 {
+			continue
+		}
+		if maxid < _id9 {
+			maxid = _id9
+		}
+
+		_x9 = 0.0
+		_y9 = -25.0 - double(rnd(2)) * 0.25
+		_z9 = 0.0
+		setpos _id9, _x9, _y9, _z9
+
+		gppbind _id9, _mass9, _fric9
+// 境界で消える
+		setobjmode _id9, OBJ_BORDER, 0
+// 少し勢いつける
+		_power9 = 200.0
+		gppapply _id9, GPPAPPLY_FORCE, double(rnd(200) - 100), -_power9 * 0.0, _power9
+	loop
+	return _num9
+
+
+// 直方体剛体を作成する
+#defcfunc _box array _size, array _pos, array _rot, int _col, double _mass, double _fric, double _pong, local _id
+	gpbox _id, 2, col
+	setpos _id, _pos.0, _pos.1, _pos.2
+	setang _id, _rot.0, _rot.1, _rot.2
+	setscale _id, _size.0, _size.1, _size.2
+	gppbind _id, _mass, _fric
+
+	gppset _id, GPPSET_FRICTION, _fric, _pong
+
+	gppset _id, GPPSET_DAMPING, 0.0, 0.0
+	//gppset _id, GPPSET_DAMPING, 1.0, 1.0
+
+	gppset _id, GPPSET_GRAVITY, 0.0, GRAVY, 0.0
+	return _id
+
+
+#defcfunc _rgb int _r, int _g, int _b
+	return (_r << 16) | (_g << 8) | _b
+
+
+#defcfunc _display
+	if _platform != PLATFORM_WEBGL {
+		return 0
+	}
+	exec {"
+window.RPGAtsumaru.scoreboards.display(1);
+"}
+	return 1
+
+#defcfunc _setrecord int _score, local _st1
+	if _platform != PLATFORM_WEBGL {
+		return 0
+	}
+	_st1 = {"
+window.RPGAtsumaru.scoreboards.setRecord(1, %d);
+"}
+	exec strf(_st1, _score)
+	return 1
+
+
+#defcfunc _setss local _st2
+// スクショ関数登録だが、まっくろだわ;;
+	return 0
+
+	if _platform != PLATFORM_WEBGL {
+		return 0
+	}
+	_st2 = {"
+var _handler = async () => {
+	const qs = document.querySelectorAll('canvas');
+	for (const q of qs) {
+		const s = q.toDataURL('image/png');
+		console.log('長さ', s.length);
+		return s;
+	}
+	throw new Error('Not found');
+};
+window.RPGAtsumaru.screenshot.setScreenshotHandler(_handler);
+"}
+	exec _st2
+	return 1
+
+
+
+*pindata01
+// 0.8 でよいがちとはまる
+// 斜め 0.8 は上から落ちるすりぬけたかも
+	_data = {"
+5, 8, 0, 0.8, 0.6
+3, 9,10, 0.6,0.6
+5, -5,10, -0.6,0.6
+3, 10.25, -10, 0.6,0.6
+5, -5,-5, 0.7,0.7
+10, 2,-7, 0.7, 0.7
+# よくある兆
+5, 10, 6, 0,1
+5, 10.8, 6, 0,1
+5, 10, 5, -0.5,-1
+5, 10.8, 5, 0.5,-1
+0, 0,0,0,0
+4, -5, 15, 0.7,-0.7
+"}
+//	return
+
+	_data = {"
+ 9, -8, 16, 2, 0
+10, -9, 14, 2, 0
+19, -18, 12, 2, 0
+5, -4, 6, 2, 0
+# 右
+3, 23, 7, -0.5, -1
+# 左
+6, -18, 4, 2, 0
+5, -17, 2, 2, 0
+6, -18, 0, 2, 0
+5, -17, -2, 2, 0
+6, -18, -4, 2, 0
+# 右
+6, 18, 4, -2, 0
+5, 17, 2, -2, 0
+6, 18, 0, -2, 0
+5, 17, -2, -2, 0
+6, 18, -4, -2, 0
+# ちょっとした模様
+1, -4, 1, 0, 0
+1,  4, 2, 0, 0
+1, 0, -1, 0, 0
+2, -0.8, -2, 1.6, 0
+# 下の方
+ 8, -7, -6, 2, 0
+ 7, -6, -8, 2, 0
+ 6, -5, -10, 2, 0
+"}
+	return
+
+
