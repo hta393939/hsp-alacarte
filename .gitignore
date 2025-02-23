@@ -13,3 +13,5 @@ obj
 !docs/**/*.js
 !docs/**/*.wasm
 !docs/**/*.data
+
+!custom/*.html
