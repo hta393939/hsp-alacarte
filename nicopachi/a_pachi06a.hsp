@@ -1,10 +1,10 @@
 /**
- * @file a_pachi06.hsp
+ * @file a_pachi06a.hsp
  */
 
 #include "hgimg4.as"
 
-#define VER "typeA 0.6.4"
+#define VER "typeA 0.6.5"
 #const DEBUG 0
 
 //#const MAX_COUNT_SEC 20
@@ -101,7 +101,10 @@
 
 	getreq _platform, SYSREQ_PLATFORM
 
-	_theme = 0xf8f8f0 // テーマカラー
+	//_theme = 0xf8f8f0 // テーマカラー
+	//_frame = 0xf8f8f8 // 枠カラー
+
+	_theme = 0xccccff // テーマカラー
 	_frame = 0xf8f8f8 // 枠カラー
 
 	title strf("nicopachi %s", VER)
@@ -1066,7 +1069,9 @@
 			setpos id, ps.0, ps.1, ps.2
 
 
-			col = 0xcccccc
+			//col = 0xcccccc
+			// 小ポケットサイド
+			col = 0xeeeeee
 			mass = 0.0
 			fric = LOW_FRIC
 			size.0 = 0.2, 1.6, 1.0
