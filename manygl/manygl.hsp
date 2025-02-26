@@ -47,8 +47,16 @@
 		chdir "data"
 	}
 
+	gosub *preini
+
+	vpad = ""
+	_maxtouch = 1
+	if _maxtouch >= 1 {
+		vpad = "vpad"
+	}
+
 	//df_config "ps2 Z150"
-	df_config "X320 Y240 Z200 vpad"
+	df_config strf("X320 Y240 Z200 %s", vpad)
 	//df_config "X320 Y240 Z200 vpad"
 	//df_config "X256 Y192 Z200"
 	df_reset
@@ -412,6 +420,8 @@
 		_menu = 1
 	}
 
+	color 0,0,0
+	grect 640/2, 480/2, 0.0, 640,480
 	es_putbg BG_MENU, 0,0, 0,0
 
 	lx = 22
@@ -606,3 +616,33 @@ window.addEventListener('dblclick', ev => {
 "}
 	exec code
 	return
+
+*preini
+	_maxtouch = 0
+
+	sdim _embuf, 4096 + 8*256 + 4*256
+	_pembuf = varptr(_pembuf)
+	_palign = ((_pembuf + 16) >> 4) << 4
+	_pf64 = _palign + (4096-16)
+	_ps32 = _pf64 + 8 * 256
+	dupptr _emf64, _pf64, 8*256, vartype("double")
+	dupptr _ems32, _ps32, 4*256, vartype("int")
+
+	if _isem == 0 {
+		return
+	}
+
+	code = ""
+	code += strf("const _pf64 = %s;\n", _pf64)
+	code += strf("const _ps32 = %s;\n", _ps32)
+	code += {"
+const _f64 = new Float64Array(Module.HEAP.buffer, _pf64, 256);
+const _s32 = new Int32Array(Module.HEAP.buffer, _ps32, 256);
+
+const numNP = navigator.maxTouchPoints ?? 0;
+_s32[0] = numNP;
+"}
+	exec code
+	_maxtouch = _ems32(0)
+	return
+
