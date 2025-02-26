@@ -640,9 +640,57 @@ const _f64 = new Float64Array(Module.HEAP.buffer, _pf64, 256);
 const _s32 = new Int32Array(Module.HEAP.buffer, _ps32, 256);
 
 const numNP = navigator.maxTouchPoints ?? 0;
-_s32[0] = numNP;
+_s32[255] = numNP;
+
+const ua = navigator.userAgent.toLowerCase();
+let osbit = 0;
+if (ua.includes('windows')) {
+  osbit |= 1;
+}
+if (ua.includes('android')) {
+  osbit |= 2;
+}
+if (ua.includes('iphone')) {
+  osbit |= 4;
+}
+if (ua.includes('ipad')) {
+  osbit |= 8;
+}
+if (ua.includes('macintosh')) {
+  osbit |= 0x10;
+}
+_s32[254] = osbit;
+
+const _update = () => {
+  requestAnimationFrame(() => {
+    _update();
+  });
+
+  { // 未実装 非クリアボタン押し下げ
+    const gs = navigator.getGamepads();
+    for (const g of gs) {
+	  if (!g) {
+	    continue;
+	  }
+	  // 10個までの軸と
+	  for (let i = 0; i < 10; ++i) {
+	    const a = g.axes[i] || 0;
+	    _f64[i] = a;
+	  }
+	  // 16bit程度のボタン
+	  let bp = 0;
+	  for (let i = 0; i < 31; ++i) {
+	    const b = g.buttons[i]?.pressed ? 1 : 0;
+	    bp |= b << i;
+	  }
+	  _s32[i] = bp;
+	}
+  }
+
+};
+_update();
 "}
 	exec code
-	_maxtouch = _ems32(0)
+	_maxtouch = _ems32(255)
 	return
 
