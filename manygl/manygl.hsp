@@ -23,8 +23,12 @@
 #enum WID_MON16
 #enum WID_MENUCHIP
 #enum WID_SHOOT32
+#enum WID_MENUBACK
+#enum WID_EFFNUM
 
 #const BG_MENU 15
+
+#const CHR_MENUBACK 159
 
 #const CHR_KEI_D 160
 #const CHR_KEI_U (CHR_KEI_D+4)
@@ -32,6 +36,11 @@
 #const CHR_KEI_R (CHR_KEI_L+4)
 #const CHR_MON_0 256
 #const CHR_SHOOT_0 512
+#const CHR_EFFNUM_0 768
+
+// 0 がなんか使われるんだけど...
+#const SPR_BACK0 1
+#const SPR_BACK1 2
 
 #const KEY_LEFT 1
 #const KEY_UP 2
@@ -55,8 +64,8 @@
 		vpad = "vpad"
 	}
 
-	//df_config "ps2 Z150"
-	df_config strf("X320 Y240 Z200 %s", vpad)
+	//df_config strf("X320 Y240 Z200 %s", vpad)
+	df_config strf("ps1 Z200 %s", vpad)
 	//df_config "X320 Y240 Z200 vpad"
 	//df_config "X256 Y192 Z200"
 	df_reset
@@ -87,6 +96,7 @@
 	fpscount = 0
 	
 *main
+	pkey = _padstick()
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
@@ -144,6 +154,7 @@
 	df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
 	df_mes strf("%d", 123), lx,6,FONT_WHITE
 	df_mes strf("%d", ts), lx,7
+	df_mes strf("PAD %08X", pkey), lx,8, FONT_WHITE
 	
 	df_update
 
@@ -227,6 +238,8 @@
 	y = _dotfw_cy
 	chno = CHR_STONE4
 	df_additem x, y, chno, 0, DIR_DOWN, 0
+
+	_emitnumdeco "100", x,y - 8, 0
 	return
 
 
@@ -320,11 +333,15 @@
 	_menuy = 6
 	gosub *clearmes
 
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // 削除
+
 	lx = 10
 	df_mes "OPTION", lx + 7, 3, FONT_RED
 	df_mes "SE", lx, 8, FONT_GREEN
 	df_mes "SE VOLUME", lx,10, FONT_GREEN
-	df_mes "GIVE UP", lx,14, FONT_GREEN
+	df_mes "GIVE UP", lx + 1,14, FONT_GREEN
+	df_mes "!", lx,14, FONT_RED
 
 	_mainlb = *menuframe
 	return
@@ -347,6 +364,9 @@
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
 
 	gosub *clearmes
 	_mainlb = *main
@@ -440,8 +460,33 @@
 	
 	goto _mainlb
 
+#module
+#deffunc _emitnumdeco str intext, int inx, int iny, int col
+// 数字のデコを発生させる
+	text = "" + intext
+	num = strlen(text)
+	x = inx - num * 4
+	y = iny - 4
+	parentbg = 2
+	repeat num
+		i = peek(text, cnt) - 0x30
+		if i < 0 {
+			i += 16
+		}
+		i += col * 16
+		if i >= 0 & i < 32 {
+			decono = _numdecos@(i)
+			es_setdeco x, y, decono
+			spno = stat
+			es_setparent spno, parentbg, 1 // 1: BGマップ
+		}
+		x += 8
+	loop
+	return
+#global
 
 *appinit
+	_dotfw_contkey = 15 | 0x3c000
 	// 効果音
 	mmload "se_puyo.wav", SE_PUYO, 0
 	mmload "se_click.wav", SE_CLICK, 1
@@ -452,9 +497,40 @@
 	_volfactor = 5
 	gosub *setvol
 
+// ショットルーチン
 	ldim firelbs, 9
 	firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
 
+// メニュー背景
+	celload "back256.png", WID_MENUBACK
+	es_size 256,256, 0
+	es_pat CHR_MENUBACK, 0,0,0, WID_MENUBACK
+	es_set SPR_BACK0, 0,0, CHR_MENUBACK
+	es_set SPR_BACK1, 256,0, CHR_MENUBACK
+	flag = ESSPFLAG_NODISP | ESSPFLAG_DECORATE
+	es_flag SPR_BACK0, flag, 1 // 追加
+	es_flag SPR_BACK1, flag, 1
+
+// エフェ
+	celload "mfont8.png", WID_EFFNUM
+	//celdiv WID_EFFNUM, 8,8
+	es_size 8,8, 0
+	dim _numdecos, 32
+	op = ESDECO_FADEOUT
+	repeat 8*4
+		i = cnt
+		x = (i \ 8) * 8
+		y = i / 8 * 8
+		chno = CHR_EFFNUM_0 + i
+		es_pat chno, x,y, 0, WID_EFFNUM
+		es_regdeco chno, op, DIR_UP, 32, 60 * 3 // 最後の引数は上書きのときだけ
+		decono = stat
+		_numdecos(i) = decono
+	loop
+
+	_emitnumdeco "*-+<>12123", 300,200, 1
+
+// けいキャラ
 	celload "kei16.png", WID_KEI16
 	es_size 16, 16, 100
 
@@ -617,6 +693,13 @@ window.addEventListener('dblclick', ev => {
 	exec code
 	return
 
+#module
+#defcfunc _padstick
+	key = _ems32@(252)
+	_ems32@(252) = 0
+	return key
+#global
+
 *preini
 	_maxtouch = 0
 
@@ -667,6 +750,8 @@ const _update = () => {
   });
 
   { // 未実装 非クリアボタン押し下げ
+    const povbits = [2, 6, 4, 12, 8, 9, 1, 3];
+    const dead = 0.25;
     const gs = navigator.getGamepads();
     for (const g of gs) {
 	  if (!g) {
@@ -683,7 +768,36 @@ const _update = () => {
 	    const b = g.buttons[i]?.pressed ? 1 : 0;
 	    bp |= b << i;
 	  }
-	  _s32[i] = bp;
+
+      // HSP stick への読み替え
+      let key = 0;
+      if (bp & 1) {
+	    key |= 0x800; // 800h Z
+	  }
+	  if (bp & 2) {
+	    key |= 0x1000; // 1000h X
+	  }
+	  if (bp & 4) {
+	    key |= 0x2000; // 2000h C
+	  }
+	  const ax = _f64[0];
+	  const ay = _f64[1];
+	  const pov = _f64[9];
+	  if (Math.abs(ax) > dead) {
+	    key |= (ax < 0) ? 0x1 : 0x4;
+	  }
+	  if (Math.abs(ay) > dead) {
+	    key |= (ay < 0) ? 0x2 : 0x8;
+	  }
+	  if (pov) {
+	    let dir = Math.round((pov + 1) * 7 / 2);
+	    if (dir >= 0 && dir < 7) {
+          key |= povbits[dir];
+		}
+	  }
+
+	  _s32[253] |= bp;
+	  _s32[252] |= key;
 	}
   }
 
