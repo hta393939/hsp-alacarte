@@ -1,4 +1,7 @@
 #include "dotfw.as"
+
+#const DEBUG 1
+
 #define BGPIC_ID (0)
 #define MYMAP_ID (1)
 
@@ -91,6 +94,8 @@
 	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
 
+	gosub *readygame
+
 	getreq ts, SYSREQ_TIMER
 	presec = ts / 1000
 	fpscount = 0
@@ -139,22 +144,33 @@
 
 // ゲーム中表示
 	lx = 2
+
 	// fps カウント
 	getreq ts, SYSREQ_TIMER
+	if _prets > 0 {
+		diff = ts - _prets
+	}
+	_mseccount += diff
+	_prets = ts
+
+	_restsec = (_endcount - _mseccount) / 1000
+
 	df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,2
 	cursec = ts / 1000
 	if cursec > presec {
-		df_mes strf("%d [fps]", fpscount), lx,3
+		df_mes strf("%d [fps] %3d [sec]   %d", fpscount, _restsec, _mseccount), lx,3
 		presec = cursec
 		fpscount = 0
 	} else {
 		fpscount += 1
 	}
-	df_mes strf("ENE %d", _dotfw_enemy), lx,4, 11
-	df_mes strf("%d, %d", j, _dotfw_myani), lx,5,FONT_LIME
-	df_mes strf("%d", 123), lx,6,FONT_WHITE
-	df_mes strf("%d", ts), lx,7
-	df_mes strf("PAD %08X", pkey), lx,8, FONT_WHITE
+	if DEBUG >= 1 {
+		df_mes strf("ENE %3d", _dotfw_enemy), lx,4, 11
+		df_mes strf("%3d, %3d", j, _dotfw_myani), lx,5,FONT_LIME
+		df_mes strf("SCORE: %7d", _score), lx,6,FONT_WHITE
+		df_mes strf("%3d", ts), lx,7
+		df_mes strf("PAD %3d %08X", _ems32(251), pkey), lx,8, FONT_WHITE
+	}
 	
 	df_update
 
@@ -224,6 +240,44 @@
 	df_addpmis x + 8, y, dir, 100 * 2, chno, opt
 	return
 
+*emitene1
+
+	x = 180 - 40
+	y = 200
+	dir = DIR_DOWN
+	shootrate = 10 * 0
+	chno = CHR_MON_0 + 16 * 4 + rnd(4)
+		//chno = CHR_MONSTER1 + rnd(4) * 2
+
+	frnext = 10
+	sp100 = 50
+		df_emode 14, chno, shootrate, frnext, sp100
+	df_addenemy x,y, dir, 8, 0
+	spno = _dotfw_cursp
+	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
+	return
+
+*emitene2
+	return
+
+*emitene3
+	return
+
+*emitene4
+	return
+
+*emitene5
+	return
+
+*emitene6
+	return
+
+*emitene7
+	return
+
+*emitene8
+	return
+
 *onaim
 	spno = _dotfw_cursp
 	x = _dotfw_myx
@@ -239,7 +293,9 @@
 	chno = CHR_STONE4
 	df_additem x, y, chno, 0, DIR_DOWN, 0
 
-	_emitnumdeco "100", x,y - 8, 0
+	powup = 100
+	_score += powup
+	_emitnumdeco strf("%d", powup), x,y - 8, 0
 	return
 
 
@@ -263,6 +319,10 @@
 
 *onbut2
 	// Z 〇
+
+	if DEBUG == 0 {
+		return
+	}
 
 	df_emodesub *onaim, 14
 	dir = DIR_DOWN
@@ -306,15 +366,6 @@
 	return
 
 
-*miss
-	; トゲにあたるとミス
-	df_mes "PLAYER MISS!",1,2		; テキスト表示
-	//df_pwipe ; プレイヤーを消去
-	gosub *mesrest
-	wait 100 * 3
-	// 
-	return
-
 *setvol
 	vol = _volfactor * _volfactor - 1000
 	repeat 5
@@ -356,7 +407,7 @@
 
 *onbut3menu
 	gosub *menutomain
-	return
+	return // C
 
 *menutomain
 	_menu = 0
@@ -388,7 +439,9 @@
 		x += 1
 	}
 
-	df_mes " ", 8, _menuy
+	if DEBUG >= 1 {
+		df_mes " ", 8, _menuy
+	}
 
 	if y != 0 {
 		_menuy += y * 2
@@ -433,6 +486,10 @@
 	return
 
 *menuframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+	
 	if key&PLAYER_KEY_ESC : end
 	
 	_menu -= 1
@@ -528,7 +585,9 @@
 		_numdecos(i) = decono
 	loop
 
-	_emitnumdeco "*-+<>12123", 300,200, 1
+	if DEBUG >= 1 {
+		_emitnumdeco "*-+<>12123", 300,200, 1
+	}
 
 // けいキャラ
 	celload "kei16.png", WID_KEI16
@@ -616,6 +675,11 @@
 	return
 
 *readygame
+	// 1ゲームの開始初期化
+	_prets = 0
+	_mseccount = 0
+	_endcount = 1000 * 120
+	_score = 0
 	_exp = 0
 	_exppool = 0
 	_nextexp = 100
@@ -719,8 +783,8 @@ window.addEventListener('dblclick', ev => {
 	code += strf("const _pf64 = %s;\n", _pf64)
 	code += strf("const _ps32 = %s;\n", _ps32)
 	code += {"
-const _f64 = new Float64Array(Module.HEAP.buffer, _pf64, 256);
-const _s32 = new Int32Array(Module.HEAP.buffer, _ps32, 256);
+const _f64 = new Float64Array(Module.HEAPF64.buffer, _pf64, 256);
+const _s32 = new Int32Array(Module.HEAP32.buffer, _ps32, 256);
 
 const numNP = navigator.maxTouchPoints ?? 0;
 _s32[255] = numNP;
@@ -749,7 +813,8 @@ const _update = () => {
     _update();
   });
 
-  { // 未実装 非クリアボタン押し下げ
+  { // パッド
+    let padnum = 0;
     const povbits = [2, 6, 4, 12, 8, 9, 1, 3];
     const dead = 0.25;
     const gs = navigator.getGamepads();
@@ -757,19 +822,20 @@ const _update = () => {
 	  if (!g) {
 	    continue;
 	  }
-	  // 10個までの軸と
+	  padnum += 1
+	  // 10
 	  for (let i = 0; i < 10; ++i) {
 	    const a = g.axes[i] || 0;
 	    _f64[i] = a;
 	  }
-	  // 16bit程度のボタン
+	  // 16bit
 	  let bp = 0;
 	  for (let i = 0; i < 31; ++i) {
 	    const b = g.buttons[i]?.pressed ? 1 : 0;
 	    bp |= b << i;
 	  }
 
-      // HSP stick への読み替え
+      // HSP stick
       let key = 0;
       if (bp & 1) {
 	    key |= 0x800; // 800h Z
@@ -799,6 +865,7 @@ const _update = () => {
 	  _s32[253] |= bp;
 	  _s32[252] |= key;
 	}
+	_s32[251] = padnum;
   }
 
 };
