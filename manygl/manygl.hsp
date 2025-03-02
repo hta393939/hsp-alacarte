@@ -177,6 +177,7 @@
 	goto _mainlb
 
 *setprun
+	// プレイヤーの速度をセットする
 	val = _prunfactor
 	df_pmode 0, val, val
 	return
@@ -241,7 +242,7 @@
 	return
 
 *emitene1
-
+// 未使用
 	x = 180 - 40
 	y = 200
 	dir = DIR_DOWN
@@ -513,9 +514,151 @@
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
 
-	df_mes strf("_menuy, %d", _menuy), 1,1
+	if DEBUG >= 1 {
+		df_mes strf("_menuy, %d", _menuy), 1,1
+	}
 	
 	goto _mainlb
+
+//// 
+
+*readytitle
+	_menu = 100
+	df_paction *onbut1title, PACTION_BUTTON
+	df_paction *onbut2title, PACTION_BUTTON2
+	df_paction *onbut3title, PACTION_BUTTON3
+	df_paction *onkeytitle, PACTION_KEY
+	_prekey = 0
+	_menuy = 6
+	gosub *clearmes
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // 削除
+
+	lx = 10
+	df_mes "OPTION", lx + 7, 3, FONT_RED
+	df_mes "SE", lx, 8, FONT_GREEN
+	df_mes "SE VOLUME", lx,10, FONT_GREEN
+	df_mes "GIVE UP", lx + 1,14, FONT_GREEN
+	df_mes "!", lx,14, FONT_RED
+
+	_mainlb = *titleframe
+	return
+
+*onbut1title
+	// 何もしない
+	return
+
+*onbut2title
+	// 何もしない
+	return
+
+*onbut3title
+	gosub *titletomain
+	return // C
+
+*titletomain
+// タイトルからゲーム開始へ
+	_menu = 0
+	df_paction *onbut1, PACTION_BUTTON
+	df_paction *onbut2, PACTION_BUTTON2
+	df_paction *onbut3, PACTION_BUTTON3
+	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+
+	gosub *clearmes
+	_mainlb = *main
+	gosub *readygame
+	return
+
+*onkeytitle
+	x = 0
+	y = 0
+	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
+		y += -1
+	}
+	if ((_prekey & KEY_DOWN) == 0) & ((key & KEY_DOWN) != 0) {
+		y += 1
+	}
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	if DEBUG >= 1 {
+		df_mes " ", 8, _menuy
+	}
+
+	if y != 0 {
+		_menuy += y * 2
+		if _menuy < 6 {
+			_menuy = 6
+		} else {
+			if _menuy > 14 {
+				_menuy = 14
+			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
+		}
+	} else {
+		if x != 0 {
+			if _menuy == 8 {
+				if x > 0 {
+					_volswitch = 1
+				} else {
+					_volswitch = 0
+				}
+			}
+			if _volswitch {
+				mmplay SE_FOOT
+			}
+		}
+	}
+	df_mes ">", 8, _menuy
+
+	_prekey = key
+	return
+
+*titleframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+	
+	if key&PLAYER_KEY_ESC : end
+	
+	_menu -= 1
+	if _menu == 0 {
+		_menu = 1
+	}
+
+	//color 0,0,0
+	//grect 640/2, 480/2, 0.0, 640,480
+	//es_putbg BG_MENU, 0,0, 0,0
+
+	lx = 22
+	sdim offons,4
+	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
+	i = _volswitch
+	s = strf("%s %s", offons(0+1-i), offons(2+i))
+	df_mes s, lx, 8
+	//df_mes strf("[ %2d]", _volfactor), lx, 10
+	df_mes "[ - ]  GIVE UP ", lx, 14
+
+	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+	df_update UPDATE_PAUSE
+
+	if DEBUG >= 1 {
+		df_mes strf("_menuy, %d", _menuy), 1,1
+	}
+	
+	df_update UPDATE_PAUSE
+	goto _mainlb
+
 
 #module
 #deffunc _emitnumdeco str intext, int inx, int iny, int col
