@@ -203,8 +203,14 @@ Module.expectedDataFileDownloads++;
   
     function fetchRemotePackage(packageName, packageSize, callback, errback) {
       var xhr = new XMLHttpRequest();
-      // NOTE: .gz
-      xhr.open('GET', packageName, true);
+      // NOTE: gzip file
+      let _filetype = 'compress';
+      _filetype = '';
+      let _pathname = packageName;
+      if (_filetype === 'compress') {
+        _pathname += '.data';
+      }
+      xhr.open('GET', _pathname, true);
       xhr.responseType = 'arraybuffer';
       xhr.onprogress = function(event) {
         var url = packageName;
@@ -238,16 +244,19 @@ Module.expectedDataFileDownloads++;
       };
       xhr.onload = async function(event) {
         var packageData = xhr.response;
-        if (xhr.responseURL.includes('.gz')) {
+        if (_filetype === 'compress') {
           const ds = new DecompressionStream('gzip');
           const ab = packageData;
           const stream = new Blob([ab]).stream().pipeThrough(ds);
           const conv = await new Response(stream).arrayBuffer();
-          console.log('uncompressed', conv.byteLength);
+          console.log('uncompressed', conv.byteLength, xhr.responseURL);
           packageData = conv;
         }
 
         callback(packageData);
+      };
+      xhr.onerror = function(ev) {
+        console.log('xhr error fire', ev);
       };
       xhr.send(null);
     };
@@ -344,7 +353,8 @@ $$$requestonload$$$
         ENV.HSP_SY = "$$$dispsize_y$$$";
         ENV.HSP_AUTOSCALE = "0";//スケーリングモード
         ENV.HSP_FPS = "0";//フレームレート
-        ENV.HSP_LIMIT_STEP = "15000";//ブラウザに処理を返すまでの実行ステップ数
+// NOTE: 
+        ENV.HSP_LIMIT_STEP = "30000";//ブラウザに処理を返すまでの実行ステップ数
         ENV.HSP_SENSOR = String( sensor_button );//センサーを使用する
 
   }
@@ -360,8 +370,7 @@ $$$requestonload$$$
 
 				var fixAudioContext = function (e) {
 console.log('sdl', Module["SDL"], Module["SDL2"]);
-				        Module["SDL"]?.openAudioContext();
-					var context = Module["SDL"]?.audioContext;
+					var context = Module["SDL2"]?.audioContext;
 					if (context) {
 						// Create empty buffer
 						var buffer = context.createBuffer(1, 1, 22050);
@@ -412,7 +421,9 @@ console.log('sdl', Module["SDL"], Module["SDL2"]);
 				// iOS 9
 				target.addEventListener('touchend', fixAudioContext);
 				target.addEventListener('mousedown', fixAudioContext);
-/*
+
+const btn_flg = document.getElementById('btn_flg');
+if (btn_flg) {
 				if ( sensor_button == 0 ) {
 					btn_flg.style.display = 'none';
 				} else {
@@ -425,7 +436,8 @@ console.log('sdl', Module["SDL"], Module["SDL2"]);
 					 }
 					}
 				}
-*/
+}
+console.log('script end line');
     </script>
     <script async src="hsp3dish.js"></script>
   </body>

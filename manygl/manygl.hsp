@@ -101,7 +101,7 @@
 	fpscount = 0
 	
 *main
-	pkey = _padstick()
+	//pkey = _padstick()
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
@@ -169,7 +169,7 @@
 		df_mes strf("%3d, %3d", j, _dotfw_myani), lx,5,FONT_LIME
 		df_mes strf("SCORE: %7d", _score), lx,6,FONT_WHITE
 		df_mes strf("%3d", ts), lx,7
-		df_mes strf("PAD %3d %08X", _ems32(251), pkey), lx,8, FONT_WHITE
+		df_mes strf("PAD %3d %08X", _padnum(), _padkey), lx,8, FONT_WHITE
 	}
 	
 	df_update
@@ -543,6 +543,7 @@
 #global
 
 *appinit
+	_dotfw_joystick = 0
 	_dotfw_contkey = 15 | 0x3c000
 	// 効果音
 	mmload "se_puyo.wav", SE_PUYO, 0
@@ -762,6 +763,11 @@ window.addEventListener('dblclick', ev => {
 	key = _ems32@(252)
 	_ems32@(252) = 0
 	return key
+
+#defcfunc _padnum
+	result = _ems32@(251)
+	return result
+	
 #global
 
 *preini
@@ -787,7 +793,7 @@ const _f64 = new Float64Array(Module.HEAPF64.buffer, _pf64, 256);
 const _s32 = new Int32Array(Module.HEAP32.buffer, _ps32, 256);
 
 const numNP = navigator.maxTouchPoints ?? 0;
-_s32[255] = numNP;
+_s32[254] = numNP;
 
 const ua = navigator.userAgent.toLowerCase();
 let osbit = 0;
@@ -806,7 +812,7 @@ if (ua.includes('ipad')) {
 if (ua.includes('macintosh')) {
   osbit |= 0x10;
 }
-_s32[254] = osbit;
+_s32[255] = osbit;
 
 const _update = () => {
   requestAnimationFrame(() => {
@@ -836,15 +842,16 @@ const _update = () => {
 	  }
 
       // HSP stick
+      // B1 1050h, B2 800h, B3 2000h 
       let key = 0;
       if (bp & 1) {
-	    key |= 0x800; // 800h Z
+	    key |= 0x1000; // B1 X
 	  }
 	  if (bp & 2) {
-	    key |= 0x1000; // 1000h X
+	    key |= 0x0800; // B2 Z
 	  }
 	  if (bp & 4) {
-	    key |= 0x2000; // 2000h C
+	    key |= 0x2000; // B3 C
 	  }
 	  const ax = _f64[0];
 	  const ay = _f64[1];
@@ -872,6 +879,6 @@ const _update = () => {
 _update();
 "}
 	exec code
-	_maxtouch = _ems32(255)
+	_maxtouch = _ems32(254)
 	return
 
