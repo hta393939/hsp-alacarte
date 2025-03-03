@@ -1,7 +1,6 @@
 #include "dotfw.as"
 
-#const DEBUG 1
-//#const DEBUG 0
+	DEBUG = 1
 
 #const TYPE_MENUBG 512
 
@@ -72,20 +71,16 @@
 	df_config strf("ps1 Z200 %s", vpad) // 320x240
 	df_reset
 
-	title "kei's monster attack type A"
+	title "kei's monster attack type A 0.1.0"
 	_pxw = 320
 	_pxh = 240
 	gosub *appini
 
-	//df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
-
-	//df_addplayer 300,100,0			; プレイヤーを追加
 	df_addplayer 300,100, CHR_KEI_D
-	//df_paction *onmiss, PACTION_MISS
-	df_paction *onitem, PACTION_ITEM
-	//df_paction *onmapitem, PACTION_MAPITEM
+
 
 	_mainlb = *titleframe
+	_dontmes = 0
 	goto _mainlb
 	
 *main
@@ -94,6 +89,7 @@
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
 	df_getplayer
+	mysp = _dotfw_cursp
 	// 左右振り
 	dim chnos, 4
 	chnos(0) = CHR_KEI_D, CHR_KEI_U, CHR_KEI_L, CHR_KEI_R
@@ -113,11 +109,20 @@
 		}
 	}
 
-	j=(_dotfw_myani>>2)&3
-	// myact 消されてるんだがなぜだ...
-	if _dotfw_myact!=1 : j=0 // キー押しじゃない場合
-	es_chr _dotfw_cursp, chnos(dir4) + j
+	isset = 1
+	chcand = chnos(dir4)
+	if key & 0xf {
+		es_get result, mysp, ESI_CHRNO
+		result = (result & 0x7ffffffc)
+		if result == chcand {
+			isset = 0
+		}
+	}
+	if isset {
+		es_chr mysp, chcand
+	}
 
+// 経験値の実際の上昇
 	i = _exppool
 	if i > 100 {
 		i = 100
@@ -141,27 +146,39 @@
 	_mseccount += diff
 	_prets = ts
 
-	_restsec = (_endcount - _mseccount) / 1000
+	restmsec = _endcount - _mseccount
+	_restsec = restmsec / 1000
+	if _restsec < 0 {
+		_restsec = 0
+	}
+	if restmsec <= 0 {
+		_gameovercount = _dotfw_fps * 10
+		gosub *totitle
+		// NOTE: 
+		_dontmes = 0
+		goto _mainlb
+	}
 
-	df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,2
+	df_mes strf("SCORE:%3d          ", _score), lx,1
+	df_mes strf("TIME :%3d", _restsec), lx,2
+
 	cursec = ts / 1000
 	if cursec > _presec {
-		df_mes strf("%d [fps] %3d [sec]   %d", _fpscount, _restsec, _mseccount), lx,3
+		df_mes strf("FPS  :%3d", _fpscount), lx,3
+
 		_presec = cursec
 		_fpscount = 0
 	} else {
 		_fpscount += 1
 	}
 	if DEBUG >= 1 {
+		df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,3
 		df_mes strf("ENE %3d", _dotfw_enemy), lx,4, 11
-		df_mes strf("%3d, %3d", j, _dotfw_myani), lx,5,FONT_LIME
-		df_mes strf("SCORE: %7d", _score), lx,6,FONT_WHITE
-		df_mes strf("%3d", ts), lx,7
 		df_mes strf("PAD %3d %08X", _padnum(), _padkey), lx,8, FONT_WHITE
 	}
-	
-	df_update
 
+	df_update
+	_dontmes = 0
 	goto _mainlb
 
 *setprun
@@ -192,30 +209,35 @@
 	return
 
 *fire3
+	return
 	chno = CHR_SHOOT_0 + 12
 	opt = 3
 	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 3, chno, opt
 	return
 
 *fire4
+	return
 	chno = CHR_SHOOT_0 + 16
 	opt = 4
 	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
 	return
 
 *fire5
+	return
 	chno = CHR_SHOOT_0 + 20
 	opt = 5
 	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
 	return
 
 *fire6
+	return
 	chno = CHR_SHOOT_0 + 24
 	opt = 6
 	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
 	return
 
 *fire7
+	return
 	dir = DIR_LEFT
 	chno = CHR_SHOOT_0 + 28
 	opt = 7
@@ -223,6 +245,7 @@
 	return
 
 *fire8
+	return
 	dir = DIR_RIGHT
 	chno = CHR_SHOOT_0
 	opt = 8
@@ -268,10 +291,10 @@
 	return
 
 *onaim
-	spno = _dotfw_cursp
+	mysp = _dotfw_cursp
 	x = _dotfw_myx
 	y = _dotfw_myy
-	es_aim spno, x,y, 5
+	es_aim mysp, x,y, 5
 	return
 
 *onenedest
@@ -282,7 +305,7 @@
 	chno = CHR_STONE4
 	df_additem x, y, chno, 0, DIR_DOWN, 0
 
-	powup = 100
+	powup = 10
 	_score += powup
 	_emitnumdeco strf("%d", powup), x,y - 8, 0
 	return
@@ -343,8 +366,8 @@
 
 
 *onitem
-	spno = _dotfw_cursp
-	es_kill spno
+	mysp = _dotfw_cursp
+	es_kill mysp
 	if 1 {
 		_exppool += 1
 	}
@@ -501,14 +524,18 @@
 	df_update UPDATE_PAUSE
 
 	if DEBUG >= 1 {
-		df_mes strf("_menuy, %d", _menuy), 1,1
+		if _dontmes == 0 {
+			df_mes strf("_menuy, %d", _menuy), 1,1
+		}
 	}
-	
+
+	_dontmes = 0
 	goto _mainlb
 
 //// タイトル
 
 *totitle
+	_dontmes = 1
 	_menu = 100
 	df_paction *onbut1title, PACTION_BUTTON
 	df_paction *onbut2title, PACTION_BUTTON2
@@ -611,7 +638,9 @@
 			}
 		}
 	}
-	df_mes ">", 8, _menuy
+	if _dontmes == 0 {
+		df_mes ">", 8, _menuy
+	}
 
 	_prekey = key
 	return
@@ -620,6 +649,8 @@
 	// メニュー中はカウント進めない
 	getreq ts, SYSREQ_TIMER
 	_prets = ts
+
+	_gameovercount -= 1
 	
 	if key&PLAYER_KEY_ESC : end
 	
@@ -636,14 +667,21 @@
 	df_mes "[ - ]  START ", lx, 8
 	df_mes strf("[ %2d]", _diffifactor), lx, 10
 
+	text = "          "
+	if ((ts \ 1000) < 800) & (_gameovercount > 0) {
+		text = "GAME OVER"
+	}
+	df_mes text, lx - 7, 14, FONT_RED
+	df_mes strf("SCORE:%3d", _score), lx - 7, 16
+
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
-	df_update UPDATE_PAUSE
 
 	if DEBUG >= 1 {
 		df_mes strf("_menuy, %d", _menuy), 1,1
 	}
 	
 	df_update UPDATE_PAUSE
+	_dontmes = 0
 	goto _mainlb
 
 
@@ -727,7 +765,7 @@
 		y = i / 8 * 8
 		chno = CHR_EFFNUM_0 + i
 		es_pat chno, x,y, 0, WID_EFFNUM
-		es_regdeco chno, op, DIR_UP, 32, 60 * 3 // 最後の引数は上書きのときだけ
+		es_regdeco chno, op, DIR_UP, 32, _dotfw_fps * 2 // 最後の引数は上書きのときだけ
 		decono = stat
 		_numdecos(i) = decono
 	loop
@@ -753,6 +791,10 @@
 
 	ch = CHR_KEI_R
 	es_patanim ch, 4, 16*4,16, frnum, WID_KEI16
+
+	//df_paction *onmiss, PACTION_MISS
+	df_paction *onitem, PACTION_ITEM
+	//df_paction *onmapitem, PACTION_MAPITEM
 
 // モンスター
 	celload "mondot.png", WID_MON32
@@ -819,7 +861,9 @@
 	// 1ゲームの開始初期化
 	_prets = 0
 	_mseccount = 0
+	// NOTE: ゲーム時間
 	_endcount = 1000 * 120
+	_endcount = 1000 * 3
 	_score = 0
 	_exp = 0
 	_exppool = 0
@@ -835,6 +879,7 @@
 	_fpscount = 0
 	return
 
+/*
 *readymenubg
 	// 枠あり背景
 	_mew = _pxw / 16
@@ -873,6 +918,7 @@
 	// 黒透明は黒になる
 	es_bgmap BG_MENU, menubgbuf, _mew,_meh, _mew,_meh, WID_MENUCHIP, ESBGOPT_NOTRANS
 	return
+*/
 
 *clearmes
 	// テキスト面全消し
