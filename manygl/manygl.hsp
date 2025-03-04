@@ -51,6 +51,12 @@
 #const KEY_UP 2
 #const KEY_RIGHT 4
 #const KEY_DOWN 8
+#const KEY_A 0x4000
+#const KEY_W 0x8000
+#const KEY_D 0x10000
+#const KEY_S 0x20000
+
+#const MASK_MOVE 0x3c00f
 
 	runos = sysinfo(0)
 	_isem = 0
@@ -78,7 +84,7 @@
 	_texth = _pxh / 8
 	gosub *appini
 
-	df_addplayer 300,100, CHR_KEI_D
+	//df_addplayer 300,100, CHR_KEI_D
 
 
 	_mainlb = *titleframe
@@ -86,12 +92,14 @@
 	goto _mainlb
 	
 *main
-	//pkey = _padstick()
-	// key は dotfw でセットされるのか
+	// key は dotfw でセットされる
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 
+// 移動アニメ
 	df_getplayer
-	mysp = _dotfw_cursp
+	mysp = sp_player@HSP3MOD_DOTFW
+	px = _dotfw_myx
+	py = _dotfw_myy
 	// 左右振り
 	dim chnos, 4
 	chnos(0) = CHR_KEI_D, CHR_KEI_U, CHR_KEI_L, CHR_KEI_R
@@ -113,7 +121,7 @@
 
 	isset = 1
 	chcand = chnos(dir4)
-	if key & 0xf {
+	if key & MASK_MOVE {
 		es_get result, mysp, ESI_CHRNO
 		result = (result & 0x7ffffffc)
 		if result == chcand {
@@ -172,6 +180,18 @@
 
 		_presec = cursec
 		_fpscount = 0
+
+		// 敵の出現
+		if (cursec \ 30) == 0 {
+			gosub *emitene3
+		} else {
+		
+			if (cursec \ 5) == 0 {
+				gosub *emitene2
+			} else {
+				gosub *emitene1
+			}
+		}
 	} else {
 		_fpscount += 1
 	}
@@ -191,6 +211,7 @@
 	df_pmode 0, val, val
 	return
 
+//// プレイヤー弾
 
 *fire1
 	// デフォルト通常弾
@@ -256,27 +277,77 @@
 	df_addpmis _x - 16 + 8, _y - 16, dir, 100 * 2, chno, opt
 	return
 
+*emitfire
+	repeat length(_firelbs)
+		gosub _firelbs(cnt)
+	loop
+	return
+
+
+//// 敵の出現
+
 *emitene1
-// 未使用
-	x = 180 - 40
-	y = 200
-	dir = DIR_DOWN
 	shootrate = 10 * 0
-	chno = CHR_MON_0 + 16 * 4 + rnd(4)
+	chno = CHR_MON_0 + 16 * 4
 		//chno = CHR_MONSTER1 + rnd(4) * 2
 
 	frnext = 10
 	sp100 = 50
-		df_emode 14, chno, shootrate, frnext, sp100
-	df_addenemy x,y, dir, 8, 0
+	df_emode 14, chno, shootrate, frnext, sp100
+	x = 32
+	y = 32
+	if px < _pxw / 2 {
+		x = _pxw - 48
+	}
+	if py < _pxh / 2 {
+		y = _pxh - 48
+	}
+	df_addenemy x,y, DIR_DOWN, 8, 0
 	spno = _dotfw_cursp
 	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
+	es_aim spno, px + 8, py + 8, sp100
 	return
 
 *emitene2
+	shootrate = 10 * 0
+	chno = CHR_MONSTER1 + rnd(2) * 2
+
+	frnext = 10
+	sp100 = 100
+	df_emode 14, chno, shootrate, frnext, sp100
+	x = 32
+	y = 32
+	if px < _pxw / 2 {
+		x = _pxw - 48
+	}
+	if py < _pxh / 2 {
+		y = _pxh - 48
+	}
+	df_addenemy x,y, DIR_DOWN, 8, 0
+	spno = _dotfw_cursp
+	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
+	es_aim spno, px + 8, py + 8, sp100
 	return
 
 *emitene3
+	shootrate = 10 * 0
+	chno = CHR_MONSTER1 + 4 + rnd(2) * 2
+
+	frnext = 1
+	sp100 = 10
+	df_emode 14, chno, shootrate, frnext, sp100
+	x = 32
+	y = 32
+	if px < _pxw / 2 {
+		x = _pxw - 48
+	}
+	if py < _pxh / 2 {
+		y = _pxh - 48
+	}
+	df_addenemy x,y, DIR_DOWN, 8, 0
+	spno = _dotfw_cursp
+	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
+	es_aim spno, px + 8, py + 8, sp100
 	return
 
 *emitene4
@@ -295,10 +366,12 @@
 	return
 
 *onaim
-	mysp = _dotfw_cursp
+	// 旧敵毎ターン処理
+	spno = _dotfw_cursp
 	x = _dotfw_myx
 	y = _dotfw_myy
-	es_aim mysp, x,y, 25
+	sp100 = 25
+	es_aim spno, x,y, sp100
 	return
 
 *onenedest
@@ -332,8 +405,8 @@
 	y = _dotfw_myy
 	_x = x + 8
 	_y = y + 8
-	repeat length(firelbs)
-		gosub firelbs(cnt)
+	repeat length(_firelbs)
+		gosub _firelbs(cnt)
 	loop
 	return
 
@@ -569,7 +642,8 @@
 	lx = 10
 	df_mes "KEI'S MONSTER ATTACK!", lx, 3, 10
 	df_mes "START", lx, 8, FONT_GREEN
-	df_mes "DIFFICULTY", lx,10, FONT_GREEN
+	// NOTE: 
+	//df_mes "DIFFICULTY", lx,10, FONT_GREEN
 
 	_mainlb = *titleframe
 	return
@@ -718,11 +792,6 @@
 	parentbg = 2
 	repeat num
 		i = peek(text, cnt) & 0xf
-		/*
-		if i < 0 {
-			i += 16
-		}
-*/
 		i += col * 16
 		if i >= 0 & i < 64 {
 			decono = _numdecos@(i)
@@ -750,9 +819,15 @@
 	loop
 	return
 
+*onmiss
+	//dialog ""
+	//end
+	return
+
+
 *appini
 	_dotfw_joystick = 0
-	_dotfw_contkey = 15 | 0x3c000
+	_dotfw_contkey = MASK_MOVE
 
 	_diffifactor = 5
 
@@ -769,8 +844,8 @@
 	gosub *setvol
 
 // ショットルーチン
-	ldim firelbs, 9
-	firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
+	ldim _firelbs, 9
+	_firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
 
 // メニュー背景
 	celload "back256.png", WID_MENUBACK
@@ -819,7 +894,7 @@
 	ch = CHR_KEI_R
 	es_patanim ch, 4, 16*4,16, frnum, WID_KEI16
 
-	//df_paction *onmiss, PACTION_MISS
+	df_paction *onmiss, PACTION_MISS
 	df_paction *onitem, PACTION_ITEM
 	//df_paction *onmapitem, PACTION_MAPITEM
 
@@ -879,6 +954,8 @@
 
 	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
 	//df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+	df_addplayer 300,100, CHR_KEI_D
 
 	gosub *totitle
 	gsel 0
