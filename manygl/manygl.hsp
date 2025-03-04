@@ -307,7 +307,8 @@
 	x = _dotfw_cx
 	y = _dotfw_cy
 	chno = CHR_STONE4
-	df_additem x, y, chno, 0, DIR_DOWN, 0
+	// NOTE: アイテム出現
+	//df_additem x, y, chno, 0, DIR_DOWN, 0
 
 	scoreup = 10
 	_score += scoreup
@@ -366,9 +367,9 @@
 	return
 
 *onbut3
-	// C ×
-	gosub *maintomenu
-	return
+	_beforescene = "main"
+	gosub *tomenu
+	return // C
 
 
 
@@ -393,7 +394,7 @@
 	return
 
 
-*maintomenu
+*tomenu
 	_menu = 100
 	df_paction *onbut1menu, PACTION_BUTTON
 	df_paction *onbut2menu, PACTION_BUTTON2
@@ -418,18 +419,28 @@
 
 *onbut1menu
 	// 何もしない
-	return
+	return // X
 
 *onbut2menu
-	// 何もしない
-	return
+	// NOTE: オプションメニューを終了する
+	gosub *closemenu
+	return // Z
 
 *onbut3menu
-	gosub *menutomain
+	// 何もしない
 	return // C
 
-*menutomain
+
+*closemenu
 	_menu = 0
+	if _beforemenu == "main" {
+		gosub *tomain
+	} else {
+		gosub *totitle
+	}
+	return
+
+*tomain
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
@@ -564,15 +575,16 @@
 	return
 
 *onbut1title
-	// 何もしない
-	return
+	gosub *titletomain
+	return // X
 
 *onbut2title
 	// 何もしない
-	return
+	return // Z
 
 *onbut3title
-	gosub *titletomain
+	_beforescene = "title"
+	gosub *tomenu
 	return // C
 
 *titletomain
