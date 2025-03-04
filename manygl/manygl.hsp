@@ -1,6 +1,6 @@
 #include "dotfw.as"
 
-	DEBUG = 1
+	DEBUG = 0
 
 #const TYPE_MENUBG 512
 
@@ -9,7 +9,7 @@
 
 #define BGFRONT_ID (2)
 
-#const SCORE_DOWN 1000
+#const SCORE_DOWN 500
 
 #const FONT_WHITE 0
 #const FONT_DBLUE 1
@@ -402,14 +402,15 @@
 	if DEBUG >= 1 {
 		_emitnumdeco strf("+-*<>%d", scoreup), x,y - 8, 0 // 0: îí
 	}
+	mmplay SE_BREAK2
+	
 	return
 
 
-// Å¢ X
-// ÅZ Z
-// Å~ C
 *onbut1
-	// X Å¢
+	if DEBUG == 0 {
+		return
+	}
 	mmplay SE_PUYO
 	//mmplay SE_FOOT
 	
@@ -421,10 +422,10 @@
 	repeat length(_firelbs)
 		gosub _firelbs(cnt)
 	loop
-	return
+	return // X
 
 *onbut2
-	// Z ÅZ
+	// Z
 
 	if DEBUG == 0 {
 		return
@@ -494,7 +495,7 @@
 	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // çÌèú
 
 	lx = 10
-	df_mes "OPTION", lx + 7, 3, FONT_RED
+	df_mes "OPTION", lx + 7, 2, FONT_RED
 	df_mes "SE", lx, 8, FONT_GREEN
 	df_mes "SE VOLUME", lx,10, FONT_GREEN
 	df_mes "GIVE UP", lx + 1,14, FONT_GREEN
@@ -616,6 +617,9 @@
 	}
 
 	lx = 22
+
+	df_mes "PUSH Z KEY FOR CLOSE", 11, 4
+	
 	sdim offons,4
 	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
 	i = _volswitch
@@ -654,9 +658,14 @@
 
 	lx = 10
 	df_mes "KEI'S MONSTER ATTACK!", lx, 3, 10
+
+	df_mes "PUSH X KEY FOR START ", lx, 6, FONT_WHITE
+
+	/*
 	df_mes "START", lx, 8, FONT_GREEN
 	// NOTE: 
-	//df_mes "DIFFICULTY", lx,10, FONT_GREEN
+	df_mes "DIFFICULTY", lx,10, FONT_GREEN
+*/
 
 	_mainlb = *titleframe
 	return
@@ -691,6 +700,7 @@
 	return
 
 *onkeytitle
+	return
 	x = 0
 	y = 0
 	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
@@ -757,21 +767,22 @@
 	_prets = ts
 
 	_gameovercount -= 1
-	
-	if key&PLAYER_KEY_ESC : end
-	
+
+	if key & PLAYER_KEY_ESC : end
+
 	_menu -= 1
 	if _menu == 0 {
 		_menu = 1
 	}
 
+	repeat 6
+		df_mes " ", 8, cnt + 4
+	loop
+
+
 	lx = 22
-	sdim offons,4
-	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
-	i = _volswitch
-	s = strf("%s %s", offons(0+1-i), offons(2+i))
-	df_mes "[ - ]  START ", lx, 8
-	df_mes strf("[ %2d]", _diffifactor), lx, 10
+//	df_mes "[ - ]  START ", lx, 8
+//	df_mes strf("[ %2d]", _diffifactor), lx, 10
 
 	text = "          "
 	if ((ts \ 1000) < 800) & (_gameovercount > 0) {
@@ -784,12 +795,12 @@
 	}
 	df_mes text, lx - 7, 16
 
-	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
-
 	if DEBUG >= 1 {
 		df_mes strf("_menuy, %d", _menuy), 1,1
 	}
+
 	
+	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
 	_dontmes = 0
 	goto _mainlb
