@@ -74,6 +74,8 @@
 	title "kei's monster attack type A 0.1.0"
 	_pxw = 320
 	_pxh = 240
+	_textw = _pxw / 8
+	_texth = _pxh / 8
 	gosub *appini
 
 	df_addplayer 300,100, CHR_KEI_D
@@ -137,6 +139,7 @@
 
 // ゲーム中表示
 	lx = 2
+	rx = _textw - 8
 
 	// fps カウント
 	getreq ts, SYSREQ_TIMER
@@ -162,9 +165,10 @@
 	df_mes strf("SCORE:%3d          ", _score), lx,1
 	df_mes strf("TIME :%3d", _restsec), lx,2
 
+	df_mes strf("PAD:%2d", _padnum()), rx, 1
 	cursec = ts / 1000
 	if cursec > _presec {
-		df_mes strf("FPS  :%3d", _fpscount), lx,3
+		df_mes strf("FPS:%2d", _fpscount), rx,2
 
 		_presec = cursec
 		_fpscount = 0
@@ -172,9 +176,9 @@
 		_fpscount += 1
 	}
 	if DEBUG >= 1 {
-		df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,3
-		df_mes strf("ENE %3d", _dotfw_enemy), lx,4, 11
-		df_mes strf("PAD %3d %08X", _padnum(), _padkey), lx,8, FONT_WHITE
+		df_mes strf("EXP: %d, NEXT: %d, LEVEL: %d", _exp, _nextexp, _level), lx,4
+		df_mes strf("ENE %3d", _dotfw_enemy), lx,5, 11
+		df_mes strf("PAD %08X", _padkey), lx,8, FONT_WHITE
 	}
 
 	df_update
@@ -294,7 +298,7 @@
 	mysp = _dotfw_cursp
 	x = _dotfw_myx
 	y = _dotfw_myy
-	es_aim mysp, x,y, 5
+	es_aim mysp, x,y, 25
 	return
 
 *onenedest
@@ -863,7 +867,7 @@
 	_mseccount = 0
 	// NOTE: ゲーム時間
 	_endcount = 1000 * 120
-	_endcount = 1000 * 3
+	//_endcount = 1000 * 3
 	_score = 0
 	_exp = 0
 	_exppool = 0
@@ -923,10 +927,10 @@
 *clearmes
 	// テキスト面全消し
 	spc = ""
-	repeat _pxw / 8
+	repeat _textw
 		spc += " "
 	loop
-	repeat _pxh / 8
+	repeat _texth
 		df_mes spc, 0,cnt
 	loop
 	return
