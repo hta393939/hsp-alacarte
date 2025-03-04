@@ -80,14 +80,11 @@
 	df_reset
 
 	title "kei's monster attack type A 0.1.0"
-	_pxw = 320
+	_pxw = 320 // 画面ピクセル幅
 	_pxh = 240
 	_textw = _pxw / 8
 	_texth = _pxh / 8
 	gosub *appini
-
-	//df_addplayer 300,100, CHR_KEI_D
-
 
 	_mainlb = *titleframe
 	_dontmes = 0
@@ -147,6 +144,9 @@
 			//gosub *levelup
 	}
 
+// 自動発砲	
+	gosub *updatefire
+
 // ゲーム中表示
 	lx = 2
 	rx = _textw - 8
@@ -176,7 +176,7 @@
 	df_mes strf("TIME :%3d", _restsec), lx,2
 
 	df_mes strf("PAD:%2d  ", _padnum()), rx, 1
-	cursec = ts / 1000
+	cursec = _mseccount / 1000
 	if cursec > _presec {
 		df_mes strf("FPS:%2d", _fpscount), rx,2
 
@@ -279,9 +279,18 @@
 	df_addpmis _x - 16 + 8, _y - 16, dir, 100 * 2, chno, opt
 	return
 
-*emitfire
-	repeat length(_firelbs)
-		gosub _firelbs(cnt)
+*updatefire
+	x = _dotfw_myx
+	y = _dotfw_myy
+	_x = x + 8
+	_y = y + 8
+	num = length(_firelbs)
+	repeat num
+		_firetimers(cnt) -= 1
+		if _firetimers(cnt) <= 0 {
+			_firetimers(cnt) = _firecools(cnt)
+			gosub _firelbs(cnt)
+		}
 	loop
 	return
 
@@ -289,7 +298,8 @@
 //// 敵の出現
 
 *emitene1
-	shootrate = 10 * 0
+	// スライム
+	shootrate = 0 // 発砲無し
 	chno = CHR_MON_0 + 16 * 4
 		//chno = CHR_MONSTER1 + rnd(4) * 2
 
@@ -298,11 +308,11 @@
 	df_emode 14, chno, shootrate, frnext, sp100
 	x = 32
 	y = 32
-	if px < _pxw / 2 {
-		x = _pxw - 48
+	if px < _mappxw / 2 {
+		x = _mappxw - 48
 	}
-	if py < _pxh / 2 {
-		y = _pxh - 48
+	if py < _mappxh / 2 {
+		y = _mappxh - 48
 	}
 	df_addenemy x,y, DIR_DOWN, 8, 0
 	spno = _dotfw_cursp
@@ -311,19 +321,20 @@
 	return
 
 *emitene2
-	shootrate = 10 * 0
-	chno = CHR_MONSTER1 + rnd(2) * 2
+	// 少し足速い敵
+	shootrate = 0
+	chno = CHR_MONSTER1 + rnd(1) * 2
 
 	frnext = 10
 	sp100 = 100
 	df_emode 14, chno, shootrate, frnext, sp100
 	x = 32
 	y = 32
-	if px < _pxw / 2 {
-		x = _pxw - 48
+	if px < _mappxw / 2 {
+		x = _mappxw - 48
 	}
-	if py < _pxh / 2 {
-		y = _pxh - 48
+	if py < _mappxh / 2 {
+		y = _mappxh - 48
 	}
 	df_addenemy x,y, DIR_DOWN, 8, 0
 	spno = _dotfw_cursp
@@ -332,19 +343,19 @@
 	return
 
 *emitene3
-	shootrate = 10 * 0
-	chno = CHR_MONSTER1 + 4 + rnd(2) * 2
-
-	frnext = 1
+	// 移動が遅く弾を撃つ敵
+	chno = CHR_MONSTER1 + 4 + rnd(1) * 2
+	shootrate = 5 // 発射確率%
+	frnext = 2
 	sp100 = 10
 	df_emode 14, chno, shootrate, frnext, sp100
 	x = 32
 	y = 32
-	if px < _pxw / 2 {
-		x = _pxw - 48
+	if px < _mappxw / 2 {
+		x = _mappxw - 48
 	}
-	if py < _pxh / 2 {
-		y = _pxh - 48
+	if py < _mappxh / 2 {
+		y = _mappxh - 48
 	}
 	df_addenemy x,y, DIR_DOWN, 8, 0
 	spno = _dotfw_cursp
@@ -367,7 +378,7 @@
 *emitene8
 	return
 
-*onaim
+*oneneframe
 	// 旧敵毎ターン処理
 	spno = _dotfw_cursp
 	x = _dotfw_myx
@@ -419,7 +430,7 @@
 		return
 	}
 
-	df_emodesub *onaim, 14
+	df_emodesub *oneneframe, 14
 	dir = DIR_DOWN
 	en = _dotfw_enemy
 	if en > 800 {
@@ -857,6 +868,13 @@
 // ショットルーチン
 	ldim _firelbs, 9
 	_firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
+	dim _firecools, 9
+	_firecools(0) = 60,60,60,  60, 60, 60,  60, 60, 60
+	dim _firetimers, 9
+	repeat 9
+		_firetimers(cnt) = _firecools(cnt)
+	loop
+	_firetimers(0) = 1,1
 
 // メニュー背景
 	celload "back256.png", WID_MENUBACK
@@ -955,6 +973,8 @@
 	df_loadbgmap MYMAP_ID, mapname
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	_mappxw = mapsx * 16
+	_mappxh = mapsy * 16
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
 
 	//df_bgpoint 0, 10,10
@@ -995,7 +1015,7 @@
 	//df_getbgpoint x, y, DOTFW_BGID_BGMAP + 0
 
 	getreq ts, SYSREQ_TIMER
-	_presec = ts / 1000
+	_presec = 0
 	_fpscount = 0
 	return
 
