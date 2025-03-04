@@ -165,7 +165,7 @@
 	df_mes strf("SCORE:%3d          ", _score), lx,1
 	df_mes strf("TIME :%3d", _restsec), lx,2
 
-	df_mes strf("PAD:%2d", _padnum()), rx, 1
+	df_mes strf("PAD:%2d  ", _padnum()), rx, 1
 	cursec = ts / 1000
 	if cursec > _presec {
 		df_mes strf("FPS:%2d", _fpscount), rx,2
@@ -309,9 +309,12 @@
 	chno = CHR_STONE4
 	df_additem x, y, chno, 0, DIR_DOWN, 0
 
-	powup = 10
-	_score += powup
-	_emitnumdeco strf("%d", powup), x,y - 8, 0
+	scoreup = 10
+	_score += scoreup
+	_emitnumdeco strf("%d", scoreup), x + rnd(4), y - 8, 2 // 2: 緑
+	if DEBUG >= 1 {
+		_emitnumdeco strf("+-*<>%d", scoreup), x,y - 8, 0 // 0: 白
+	}
 	return
 
 
@@ -676,7 +679,11 @@
 		text = "GAME OVER"
 	}
 	df_mes text, lx - 7, 14, FONT_RED
-	df_mes strf("SCORE:%3d", _score), lx - 7, 16
+	text = "                    "
+	if _score >= 0 {
+		text = strf("SCORE:%3d", _score)
+	}
+	df_mes text, lx - 7, 16
 
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 
@@ -698,12 +705,14 @@
 	y = iny - 4
 	parentbg = 2
 	repeat num
-		i = peek(text, cnt) - 0x30
+		i = peek(text, cnt) & 0xf
+		/*
 		if i < 0 {
 			i += 16
 		}
+*/
 		i += col * 16
-		if i >= 0 & i < 32 {
+		if i >= 0 & i < 64 {
 			decono = _numdecos@(i)
 			es_setdeco x, y, decono
 			spno = stat
@@ -717,10 +726,12 @@
 
 *clearsp
 	// プレイヤーと背景用以外を消す
-	// デコが消えないのだが;;
 	repeat _dotfw_essmax
+		if sp_player@HSP3MOD_DOTFW == cnt {
+			continue
+		}
 		es_get result, cnt, ESI_TYPE
-		if result & (TYPE_PLAYER | TYPE_MENUBG) {
+		if result & TYPE_MENUBG {
 			continue
 		}
 		es_kill cnt
@@ -732,6 +743,8 @@
 	_dotfw_contkey = 15 | 0x3c000
 
 	_diffifactor = 5
+
+	_score = -1
 	
 	// 効果音
 	mmload "se_puyo.wav", SE_PUYO, 0
@@ -753,6 +766,8 @@
 	es_pat CHR_MENUBACK, 0,0,0, WID_MENUBACK
 	es_set SPR_BACK0, 0,0, CHR_MENUBACK
 	es_set SPR_BACK1, 256,0, CHR_MENUBACK
+	es_setp SPR_BACK0, ESI_TYPE, TYPE_MENUBG, 0 // 0: 上書き
+	es_setp SPR_BACK1, ESI_TYPE, TYPE_MENUBG, 0
 	flag = ESSPFLAG_NODISP | ESSPFLAG_DECORATE
 	es_flag SPR_BACK0, flag, 1 // 追加
 	es_flag SPR_BACK1, flag, 1
@@ -761,9 +776,9 @@
 	celload "mfont8.png", WID_EFFNUM
 	//celdiv WID_EFFNUM, 8,8
 	es_size 8,8, 0
-	dim _numdecos, 32
+	dim _numdecos, 64
 	op = ESDECO_FADEOUT
-	repeat 8*4
+	repeat 8*8
 		i = cnt
 		x = (i \ 8) * 8
 		y = i / 8 * 8
@@ -773,10 +788,6 @@
 		decono = stat
 		_numdecos(i) = decono
 	loop
-
-	if DEBUG >= 1 {
-		_emitnumdeco "*-+<>12123", 300,200, 1
-	}
 
 // けいキャラ
 	celload "kei16.png", WID_KEI16
@@ -971,8 +982,8 @@ window.addEventListener('dblclick', ev => {
 	_maxtouch = 0
 
 	sdim _embuf, 4096 + 8*256 + 4*256
-	_pembuf = varptr(_pembuf)
-	_palign = ((_pembuf + 16) >> 4) << 4
+	_pembuf = varptr(_embuf)
+	_palign = ((_pembuf + 15) >> 4) << 4
 	_pf64 = _palign + (4096-16)
 	_ps32 = _pf64 + 8 * 256
 	dupptr _emf64, _pf64, 8*256, vartype("double")
@@ -983,8 +994,8 @@ window.addEventListener('dblclick', ev => {
 	}
 
 	code = ""
-	code += strf("const _pf64 = %s;\n", _pf64)
-	code += strf("const _ps32 = %s;\n", _ps32)
+	code += strf("const _pf64 = %d;\n", _pf64)
+	code += strf("const _ps32 = %d;\n", _ps32)
 	code += {"
 const _f64 = new Float64Array(Module.HEAPF64.buffer, _pf64, 256);
 const _s32 = new Int32Array(Module.HEAP32.buffer, _ps32, 256);
