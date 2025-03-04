@@ -9,6 +9,8 @@
 
 #define BGFRONT_ID (2)
 
+#const SCORE_DOWN 1000
+
 #const FONT_WHITE 0
 #const FONT_DBLUE 1
 #const FONT_GREEN 2
@@ -820,8 +822,17 @@
 	return
 
 *onmiss
-	//dialog ""
-	//end
+	spno = _dotfw_cursp
+	scoredown = SCORE_DOWN
+	_score -= scoredown
+	if _score < 0 {
+		_score = 0
+	}
+	text = strf("-%d", scoredown)
+	es_getpos sp_player@HSP3MOD_DOTFW, x, y, ESSPSET_POS
+	_emitnumdeco text, x + 8, y, 1
+	es_kill spno
+	mmplay SE_PUYO
 	return
 
 
@@ -977,6 +988,11 @@
 	gosub *setprun
 
 	gosub *clearsp
+
+	// TODO: map
+	es_pos sp_player@HSP3MOD_DOTFW, 300,100, ESSPSET_POS
+	df_bgpoint DOTFW_BGID_BGMAP + 0, 300, 24
+	//df_getbgpoint x, y, DOTFW_BGID_BGMAP + 0
 
 	getreq ts, SYSREQ_TIMER
 	_presec = ts / 1000
