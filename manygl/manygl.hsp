@@ -1,6 +1,6 @@
 #include "dotfw.as"
 
-	DEBUG = 0
+	DEBUG = 1
 
 #const TYPE_MENUBG 512
 
@@ -79,7 +79,7 @@
 	df_config strf("ps1 Z200 %s", vpad) // 320x240
 	df_reset
 
-	title "kei's monster attack type A 0.1.0"
+	title "kei's monster attack typeB 0.1.0"
 	_pxw = 320 // âÊñ ÉsÉNÉZÉãïù
 	_pxh = 240
 	_textw = _pxw / 8
