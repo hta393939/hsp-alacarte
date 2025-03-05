@@ -1,0 +1,101 @@
+#include "kernel32.as"
+
+#const INVALID_HANDLE_VALUE -1
+#const NULL 0
+#const FALSE 0
+#const PAGE_READWRITE 4
+#const FILE_MAP_READ 4
+#const WAIT_OBJECT_0 0
+#const WAIT_TIMEOUT 0x102
+
+	title "dbgview 代替"
+
+	sdim lines, 512, 24
+	dim blacklist, 16
+
+	pidstr = 12345
+	input pidstr, 64, 32
+	pos 64,0
+	button gosub "追加", *add
+
+	onexit *onend
+
+	CreateFileMapping INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 4096, "DBWIN_BUFFER"
+	hfilemap = stat
+	if hfilemap == NULL {
+		mes "CreateFileMapping failure."
+		stop
+	}
+
+	// 受け取り側(これ)が準備できたときのイベント
+	CreateEvent NULL, TRUE, FALSE, "DBWIN_BUFFER_READY"
+	evbuf = stat
+	// 書き込み側が発火するイベント
+	CreateEvent NULL, FALSE, FALSE, "DBWIN_DATA_READY"
+	evdata = stat
+
+
+	MapViewOfFile hfilemap, FILE_MAP_READ, 0, 0, 4096
+	pv = stat
+
+	dupptr pid, pv, 4, vartype("int")
+	dupptr text, pv + 4, 512 - 4, vartype("str")
+
+	SetEvent evbuf
+
+*main
+	WaitForSingleObject evdata, 1
+	result = stat
+	if result == WAIT_OBJECT_0 {
+		isblack = 0
+		repeat 16
+			if blacklist(cnt) == 0 {
+				break
+			}
+			if pid == blacklist(cnt) {
+				isblack = 1
+				break
+			}
+		loop
+		if isblack {
+			goto *skip
+		}
+		
+		redraw 0
+		s = strf("[%d] %s", pid, text)
+
+		repeat 23
+			i = 23 - cnt
+			lines(i) = lines(i - 1)
+		loop
+		lines(0) = s
+
+		color 255, 255, 255
+		boxf 0, 0, 640, 480
+		color 0, 0, 0
+		pos 8, 32
+		repeat 24
+			mes lines(cnt)
+		loop
+		redraw 1
+*skip
+		SetEvent evbuf
+	}
+	wait 1
+	goto *main
+
+*add
+	repeat 16
+		if blacklist(cnt) == 0 {
+			blacklist(cnt) = int(pidstr)
+			break
+		}
+	loop
+	return
+
+*onend
+	UnmapViewOfFile pv
+	CloseHandle hfilemap
+	CloseHandle evbuf
+	CloseHandle evdata
+	end
