@@ -314,10 +314,12 @@
 	if py < _mappxh / 2 {
 		y = _mappxh - 48
 	}
-	df_addenemy x,y, DIR_DOWN, 8, 0
+	df_addenemy x,y, DIR_RIGHT / 2, sp100, 0
 	spno = _dotfw_cursp
 	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
-	es_aim spno, px + 8, py + 8, sp100
+	//es_aim spno, px + 8, py + 8, sp100
+
+	es_setlife spno, 5, 0 // ライフセット
 	return
 
 *emitene2
@@ -336,7 +338,7 @@
 	if py < _mappxh / 2 {
 		y = _mappxh - 48
 	}
-	df_addenemy x,y, DIR_DOWN, 8, 0
+	df_addenemy x,y, DIR_DOWN, sp100, 0
 	spno = _dotfw_cursp
 	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
 	es_aim spno, px + 8, py + 8, sp100
@@ -357,7 +359,7 @@
 	if py < _mappxh / 2 {
 		y = _mappxh - 48
 	}
-	df_addenemy x,y, DIR_DOWN, 8, 0
+	df_addenemy x,y, DIR_DOWN, sp100, 0
 	spno = _dotfw_cursp
 	es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
 	es_aim spno, px + 8, py + 8, sp100
@@ -978,9 +980,10 @@
 // ボタン
 	hspvpad_set 4, -1 // チェック無効
 
-// マップ
+// NOTE: マップ
 	//mapname = "survive16.tmap"
-	mapname = "square32_16.tmap"
+	//mapname = "square32_16.tmap"
+	mapname = "squarewall32_16.tmap"
 	df_loadbgmap MYMAP_ID, mapname
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得

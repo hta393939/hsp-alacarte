@@ -1,10 +1,340 @@
+
 #ifndef __DOT_FW
 #define __DOT_FW
 
 #include "hsp3dish.as"
-#include "layer_fade.as"
-#include "mod_joystick2.as"
-#include "mod_vpad.as"
+
+
+#ifndef __mod_layer_fade__
+#define __mod_layer_fade__
+
+#module "mod_layer_fade"
+
+;
+;	フェードイン・アウトモジュール(HSP3.6b3以降)
+;
+	_fadeadd=0
+	_fadespeed=0
+
+#deffunc fadein
+
+	;	フェードイン
+	;
+	_fadeadd=-_fadespeed
+	return
+
+#deffunc fadeout
+
+	;	フェードアウト
+	;
+	_fadeadd=_fadespeed
+	return
+
+#deffunc fadespeed int _p1
+
+	;	フェードスピード設定
+	;
+	_fadespeed=_p1
+	if _fadespeed<=0 : _fadespeed=8
+	return
+
+#deffunc fadecolor int _p1
+
+	;	フェード色設定
+	;
+	_fadecolor=_p1
+	return
+
+#deffunc layer_fade int _p1
+
+	;	フェードイン・アウト初期化
+	;	スクリーンレイヤーにモジュールを登録します
+	;	layer_fade _prm1
+	;
+	pos 0,0:sx=ginfo_sx:sy=ginfo_sy
+	layerobj sx,sy,objlayer_max,*layer_main
+	_fadecolor=0
+	_fadeprm=255
+	_fadespeed=8
+	_fadeadd=-8
+	return
+
+*layer_main
+	if lparam=objlayer_cmddraw : goto *layer_draw
+	return
+*layer_draw
+	if _fadeprm<=0&_fadespeed=0 : return
+
+	rgbcolor _fadecolor
+	_fadeprm+=_fadeadd
+	if _fadeprm<0 {
+		_fadeprm=0
+		_fadeadd=0
+	}
+	if _fadeprm>=255 {
+		_fadeprm=255
+		_fadeadd=0
+		boxf
+		return
+	}
+	gmode 3,,,_fadeprm
+	grect sx/2,sy/2,0,sx,sy
+	return
+
+
+#global
+#endif
+
+
+
+;----------------------------------------------------------------
+; ジョイスティック入力モジュール2
+; jstick命令をstick命令互換でジョイスティック対応にします
+; (mod_joystickの上位互換としても使用できます)
+;  MIA 2004 / onitama 2005,2020
+;  使用に関する制限はありません。ご自由にお使いください。
+;----------------------------------------------------------------
+;2020/4 修正
+;jstick命令をstick命令と互換にして、キーボードの値も取得するようにしました。
+;stick命令をjstick命令に置き換えるだけでジョイスティック対応になります。
+;「jstick 変数,トリガー指定,ポート番号」の書式で使用できます。
+;
+;エラーの処理と自動復帰にも対応しています。
+;(エラーが発生している間は、変数「modjoy_err(ポート)」が1になります。)
+;変数「modjoy_err(ポート)」が0の間はジョイスティックの値を取りにいきます。
+;(※既存のjstick命令はjstick_org命令に置き換えました)
+
+#module "joy"
+
+#const BORDER_LOW   32768 - 4096
+#const BORDER_HIGH  32768 + 4096
+
+#uselib "winmm.dll"
+#func _joyGetPosEx "joyGetPosEx" int, var
+
+modjoy_err@=0
+key_now=0
+jkey=0
+trg_key=0
+last_key=0
+
+#deffunc joyGetPosEx array p1, int p2
+	p1.15=0:p1=52,255
+	_joyGetPosEx p2,p1
+	return
+
+#deffunc jstick_org var p1, int p2
+
+	;	jstick 変数,ポート番号
+	;	(stick命令互換の値を変数に返す)
+	;
+	if length(modjoy_err@)=1 {
+		dim modjoy_err@,16
+	}
+	if modjoy_err@(p2) : goto *jstick_resume
+	;
+	jdata.15=0:jdata=52,255
+	_joyGetPosEx p2,jdata
+	if stat!=0 : goto *jstick_err
+	res=(jdata.8)<<4
+	if jdata.2<BORDER_LOW : res|=1
+	if jdata.2>BORDER_HIGH : res|=4
+	if jdata.3<BORDER_LOW : res|=2
+	if jdata.3>BORDER_HIGH : res|=8
+	p1=res
+	return
+*jstick_resume
+	_joyGetPosEx p2,jdata
+	if stat!=0 : goto *jstick_err
+	p1=0
+	modjoy_err@(p2)=0
+	return
+*jstick_err
+	p1=0
+	modjoy_err@(p2)=1
+	return
+
+#deffunc jstick var _p1, int _p2, int _p3
+
+	;	jstick 変数,ポート番号
+	;	(stick命令互換の値を変数に返す)
+	;
+	stick@hsp key_now,$3ffff
+	jstick_org jkey,_p3
+	key_now|=jkey
+	trg_key=key_now^last_key&key_now
+	last_key=key_now
+	_p1 = (last_key & _p2) + ( trg_key & (0xfffff ^ _p2) )
+	return
+
+#global
+
+
+
+;----------------------------------------------------------------
+; サンプルコード
+;----------------------------------------------------------------
+;----------------------------------------------------------------
+; joyGetPosEx data, ポート番号
+;   stat = 0 であれば入力は正常です。
+;	data.0 = 常に 52  が入ります
+;	data.1 = 常に 255 が入ります
+;	data.2 = 第 1 軸の状態（普通のジョイスティックの X 軸）
+;	data.3 = 第 2 軸の状態（普通のジョイスティックの Y 軸）
+;	data.4 = 第 3 軸の状態（スロットル等）
+;	data.5 = 第 4 軸の状態
+;	data.6 = 第 5 軸の状態
+;	data.7 = 第 6 軸の状態
+;	data.8 = ボタンの状態（最大32ボタン）
+;	data.9 = 同時に押されているボタンの数
+;	data.10 = POV スイッチの状態
+;	data.11 = 予備情報1
+;	data.12 = 予備情報2
+;----------------------------------------------------------------
+/*
+	repeat
+		redraw 0
+		color 255,255,255 : boxf : color 0,0,0
+		joyGetPosEx data, 0
+		pos 0,0 : mes "stat = " + stat
+		repeat 13 : mes data.cnt : loop
+		redraw 1 : await 30
+	loop
+*/
+
+
+
+;----------------------------------------------------------------
+; バーチャルパッドモジュール / onitama 2023
+;  使用に関する制限はありません。ご自由にお使いください。
+;----------------------------------------------------------------
+
+#module "_vpad"
+
+#deffunc hspvpad_init int _p1, int _p2, int _p3, int _p4
+
+	;	バーチャルパッドの初期化
+	;	hspvpad_init p1,p2
+	;	p1 : パッド画像を格納するバッファID
+	;	p2 : パッド配置(1=左PAD/2=上PAD/4=移動のみ)
+	;	p3 : X方向オフセット
+	;	p4 : Y方向オフセット
+	;
+	vpbuf=_p1
+	if vpbuf<=0 : vpbuf=ginfo(25)
+	celload "vpad.png",vpbuf
+	celdiv vpbuf,64,64
+	vppos=_p2
+	sx=ginfo_sx:sy=ginfo_sy
+	vpadx=32:if vppos&1 : vpadx=sx-223
+	i=22:if vppos&2 : i=4
+	vpady=sy*i/30
+	vpadx += _p3 : vpady += _p4
+	;
+	vpkey=0
+	vpmax=0
+	dim vp_key,16
+	dim vp_id,16
+	dim vp_x,16
+	dim vp_y,16
+	;
+	hspvpad_addkey vpadx,vpady,1,7
+	hspvpad_addkey vpadx+128,vpady,4,5
+	hspvpad_addkey vpadx+64,vpady-64,2,4
+	hspvpad_addkey vpadx+64,vpady+64,8,6
+	;
+	vpadx=sx-223:if vppos&1 : vpadx=32
+	;
+	if (vppos&4)=0 {
+		hspvpad_addkey vpadx,vpady,16,3
+		hspvpad_addkey vpadx+128,vpady,2048,0
+		hspvpad_addkey vpadx+64,vpady-64,4096,2
+		hspvpad_addkey vpadx+64,vpady+64,8192,1
+	}
+	;
+	return
+
+
+#deffunc hspvpad_addkey int _p1, int _p2, int _p3, int _p4
+
+	;	ボタンの配置(内部用)
+	vp_x(vpmax)=_p1
+	vp_y(vpmax)=_p2
+	vp_key(vpmax)=_p3
+	vp_id(vpmax)=_p4
+	vpmax++
+	return	
+
+
+#deffunc hspvpad_set int _p1, int _p2, int _p3
+
+	;	バーチャルパッドのボタン位置調整
+	;	hspvpad_set p1,p2,p3
+	;	p1 : ボタンID(0=上/1=下/2=左/3=右/4=チェック/5=〇/6=△/7=×)
+	;	p2 : X位置(絶対座標) (マイナス値の場合は表示なし)
+	;	p3 : Y位置(絶対座標)
+	;
+	vp_x(_p1)=_p2
+	vp_y(_p1)=_p3
+	return
+
+
+#deffunc hspvpad_stick int _p1, int _p2
+
+	;	バーチャルパッドのキー置き換え
+	;	hspvpad_stick p1,p2
+	;	p1 : ボタンID(0=上/1=下/2=左/3=右/4=チェック/5=〇/6=△/7=×)
+	;	p2 : キー値(stick命令のキー情報値)
+	;
+	vp_key(_p1)=_p2
+	return
+
+
+#deffunc hspvpad_key var _p1, int _p2
+
+	;	バーチャルパッドのキー処理
+	;	hspvpad_key var
+	;	var = stickで値を取得した変数名
+	;
+	if _p1&$100 {
+
+	x=mousex:y=mousey
+	    repeat vpmax
+		x1=vp_x(cnt):x2=x1+64
+		if x1>=0 {
+			if x>=x1&&x<x2 {
+				y1=vp_y(cnt):y2=y1+64
+				if y>=y1&&y<y2 {
+					_p1|=vp_key(cnt)
+				}
+			}
+		}
+	    loop
+	}
+	vpkey=_p1
+	return
+
+#deffunc hspvpad_put int _p1, int _p2
+
+	;	バーチャルパッドの表示処理
+	;	hspvpad_put p1
+	;	p1 : 強制ONを行うkey値
+	;
+	i=vpkey|_p1
+	gmode 3,,,128
+	repeat vpmax
+		x=vp_x(cnt)
+		if x>=0 {
+			pos x,vp_y(cnt)
+			j=vp_id(cnt):if i&vp_key(cnt) : j+=8
+			celput vpbuf,j
+		}
+	loop
+	return
+
+#global
+
+
 
 ;
 ;
@@ -76,14 +406,6 @@
 	key = 0							; キーコード(stickの値)
 
 #module HSP3MOD_DOTFW
-
-// NOTE: 
-#const MASK_LADDER 0xf0000000
-#const BIT_LADDER 0x10000000
-#const KEY_A 0x4000
-#const KEY_W 0x8000
-#const KEY_D 0x10000
-#const KEY_S 0x20000
 
 #define global DOTFW_AFONT (0)
 #define global DOTFW_BFONT (1)
@@ -1356,11 +1678,6 @@
 	}
 	if _dotfw_vpad@ : hspvpad_key key@
 
-// NOTE: 
-	_padkey@ = 0
-	//_padkey@ = _padstick@()
-	key@ |= _padkey@
-
 	redraw 0
 	viewcalc vptype_2d, zoomx, zoomy
 	gosub *df_bgput
@@ -1769,25 +2086,24 @@
 	sp_player_mypx = 0
 	sp_player_mypy = 0
 	sp_player_myact = 0
-// NOTE: A 4000h WDS stick
-	if ky&(1 | KEY_A) {
-		sp_player_mydir = DIR_UP
+	if ky&1 {
+		sp_player_mydir = DIR_LEFT
 		sp_player_mypx = -sp_player_speedx
 		sp_player_myact=1
 	}
-	if ky&(4 | KEY_D) {
+	if ky&4 {
 		sp_player_mydir = DIR_RIGHT
 		sp_player_mypx = sp_player_speedx
 		sp_player_myact=1
 	}
-	if ky&(2 | KEY_W) {
+	if ky&2 {
 		sp_player_mydir = DIR_UP
 		sp_player_mypy = -sp_player_speedy
 		sp_player_myact=1
 	}
-	if ky&(8 | KEY_S) {
+	if ky&8 {
 		sp_player_mydir = DIR_DOWN
-		sp_player_mypy = -sp_player_speedy
+		sp_player_mypy = sp_player_speedy
 		sp_player_myact=1
 	}
 	es_apos sp_player,sp_player_mypx,sp_player_mypy
@@ -1800,48 +2116,16 @@
 	sp_player_mypx = 0
 	sp_player_myact = 0
 	pxadd=sp_player_speedx<<16
-	// NOTE: ladder
-	es_get opt, sp_player, ESI_OPTION
-	if opt & MASK_LADDER {
-		ladder_x = 65536 * 1
-		ladder_y = 65536 * 1
-		if ky & (1 | KEY_A) {
-			sp_player_mydir = DIR_LEFT
-			sp_player_mypx = - ladder_x
-			sp_player_myact=1
-		}
-		if ky & (4 | KEY_D) {
-			sp_player_mydir = DIR_RIGHT
-			sp_player_mypx = ladder_x
-			sp_player_myact=1
-		}
-		if ky & (2 | KEY_W) {
-			sp_player_mydir = DIR_UP
-			sp_player_mypy = - ladder_y
-			sp_player_myact=1
-			es_setp sp_player,ESI_SPDY, sp_player_mypy
-		}
-		if ky & (8 | KEY_S) {
-			sp_player_mydir = DIR_DOWN
-			sp_player_mypy = ladder_y
-			sp_player_myact=1
-			es_setp sp_player,ESI_SPDY, sp_player_mypy
-		}
-	} else {
-	// 元のコード
-	if ky&(1 | KEY_A) {
+	if ky&1 {
 		sp_player_mydir = DIR_LEFT
 		sp_player_mypx = -pxadd
 		sp_player_myact=1
 	}
-	if ky&(4 | KEY_D) {
+	if ky&4 {
 		sp_player_mydir = DIR_RIGHT
 		sp_player_mypx = pxadd
 		sp_player_myact=1
 	}
-	
-	}
-	
 
 	;x=myx+(sp_player_mypx>>14)
 	;if x<sp_player_x1 : sp_player_mypx=0
@@ -2594,3 +2878,128 @@
 #global
 #endif
 
+
+#define BGPIC_ID (0)
+#define MYMAP_ID (1)
+
+#define BGFRONT_ID (2)
+
+	chdir "data"
+// スクロール有りジャンプ有り 敵弾が壁で止まる
+	;	マップを使ったサンプル4
+// 左右のみ
+	//df_config "ps2 Z150"
+	df_config "X320 Y240 Z200 vpad"
+	//df_config "X320 Y240 Z200 vpad"
+	//df_config "X256 Y192 Z200"
+	df_reset
+
+	hspvpad_set 2, -1 // 上
+	hspvpad_set 3, -1 // 下
+	hspvpad_set 4, -1 // v←
+	//hspvpad_set 5, -1 // o→Z ジャンプ
+	hspvpad_set 6, -1 // A↑ X
+	//hspvpad_set 7, -1 // ロ↓C
+
+	//df_setbgpicfile BGPIC_ID,"sozai5.jpg"	; 背景画像
+
+	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"	; マップファイル読み込み
+	mapsx = _dotfw_curmapx			; マップサイズXを取得
+	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
+
+	//df_bgpoint 0, 10,10
+
+	//df_mapaction MYMAP_ID, 0, 6 ; 重力無し
+	df_mapaction MYMAP_ID, 60, 6 ; 重力とジャンプ(80, 8とか)
+
+	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
+	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+
+	if 0 {
+		df_celload bgcel,"tamadot.png"		; キャラクターの画像ファイル
+		es_sizeex 64,64,,40,40,12,24		; キャラクターのサイズ指定
+		es_patanim 0, 4, 256, 64, 0, bgcel	; キャラクターの登録(0)
+		es_patanim 4, 4, 256, 192, 0, bgcel	; キャラクターの登録(4)
+	} else {
+		df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
+		es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
+		es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
+		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
+	}
+
+
+	df_mes "TAMANE DOT FRAMEWORK",1,1	; テキスト表示
+
+	df_addplayer 300,100,0			; プレイヤーを追加
+	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
+	df_pmode 0, 2, 2
+
+	if 1 {
+		//df_emode 0, 1, 60, 60, 2, 0, 0
+		//df_enemygen DIR_LEFT, 10, 60, 0
+	}
+
+	if 1 { // 画面外で消える
+		repeat 5
+			dir = DIR_DOWN
+			dir = DIR_AIM
+			df_addenemy cnt * 50 + 200, cnt * 50 + 100, dir, 8, 0
+		loop
+	}
+
+	
+*main
+	// key は dotfw でセットされるのか
+	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
+	
+	df_getplayer
+	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
+	j=(_dotfw_myani>>2)&3
+	if _dotfw_myact!=1 : j=0
+	es_chr _dotfw_cursp, i+j
+
+	if key & PLAYER_KEY_BUTTON3 {
+		// 0下から反時計周り
+		dir = DIR_LEFT
+		dir = _dotfw_mydir // ジャンプ時のみらしい
+		if dir == DIR_LEFT {
+			mv = -1
+		} else {
+			mv = 1
+		}
+		df_addpmis _dotfw_myx + mv * 8, _dotfw_myy, dir, 100 * 2, 0, 0
+	} // 2000h C
+
+	df_update
+	goto *main
+
+*player_mapev
+	;	イベント処理
+	op=_dotfw_curmapattr
+	if op==0 {
+		; アイテム取得
+		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
+	}
+	if op==1 {
+		goto *miss
+
+	}
+	return
+
+*mesrest
+	df_mes strf("12ab%c%c%c%c", 0x81, 0x91, 0xa1, 0xb1), 1,4
+	df_mes strf("24ab%c%c%c%c", 0x01, 0x11, 0x21, 0x31), 1,5
+	return
+
+
+*miss
+	; トゲにあたるとミス
+	df_mes "PLAYER MISS!",1,2		; テキスト表示
+	//df_pwipe ; プレイヤーを消去
+	gosub *mesrest
+	wait 100 * 3
+	// 
+	return
