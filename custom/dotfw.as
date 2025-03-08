@@ -77,6 +77,14 @@
 
 #module HSP3MOD_DOTFW
 
+// NOTE: 
+#const MASK_LADDER 0xf0000000
+#const BIT_LADDER 0x10000000
+#const KEY_A 0x4000
+#const KEY_W 0x8000
+#const KEY_D 0x10000
+#const KEY_S 0x20000
+
 #define global DOTFW_AFONT (0)
 #define global DOTFW_BFONT (1)
 #define global DOTFW_CFONT (2)
@@ -1349,7 +1357,8 @@
 	if _dotfw_vpad@ : hspvpad_key key@
 
 // NOTE: 
-	_padkey@ = _padstick@()
+	_padkey@ = 0
+	//_padkey@ = _padstick@()
 	key@ |= _padkey@
 
 	redraw 0
@@ -1761,24 +1770,24 @@
 	sp_player_mypy = 0
 	sp_player_myact = 0
 // NOTE: A 4000h WDS stick
-	if ky&(1 | 0x4000) {
-		sp_player_mydir = DIR_LEFT
+	if ky&(1 | KEY_A) {
+		sp_player_mydir = DIR_UP
 		sp_player_mypx = -sp_player_speedx
 		sp_player_myact=1
 	}
-	if ky&(4 | 0x10000) {
+	if ky&(4 | KEY_D) {
 		sp_player_mydir = DIR_RIGHT
 		sp_player_mypx = sp_player_speedx
 		sp_player_myact=1
 	}
-	if ky&(2 | 0x8000) {
+	if ky&(2 | KEY_W) {
 		sp_player_mydir = DIR_UP
 		sp_player_mypy = -sp_player_speedy
 		sp_player_myact=1
 	}
-	if ky&(8 | 0x20000) {
+	if ky&(8 | KEY_S) {
 		sp_player_mydir = DIR_DOWN
-		sp_player_mypy = sp_player_speedy
+		sp_player_mypy = -sp_player_speedy
 		sp_player_myact=1
 	}
 	es_apos sp_player,sp_player_mypx,sp_player_mypy
@@ -1791,6 +1800,35 @@
 	sp_player_mypx = 0
 	sp_player_myact = 0
 	pxadd=sp_player_speedx<<16
+	// NOTE: ladder
+	es_get opt, sp_player, ESI_OPTION
+	if opt & MASK_LADDER {
+		ladder_x = 65536 * 1
+		ladder_y = 65536 * 1
+		if ky & (1 | KEY_A) {
+			sp_player_mydir = DIR_LEFT
+			sp_player_mypx = - ladder_x
+			sp_player_myact=1
+		}
+		if ky & (4 | KEY_D) {
+			sp_player_mydir = DIR_RIGHT
+			sp_player_mypx = ladder_x
+			sp_player_myact=1
+		}
+		if ky & (2 | KEY_W) {
+			sp_player_mydir = DIR_UP
+			sp_player_mypy = - ladder_y
+			sp_player_myact=1
+			es_setp sp_player,ESI_SPDY, sp_player_mypy
+		}
+		if ky & (8 | KEY_S) {
+			sp_player_mydir = DIR_DOWN
+			sp_player_mypy = ladder_y
+			sp_player_myact=1
+			es_setp sp_player,ESI_SPDY, sp_player_mypy
+		}
+	} else {
+	// Œ³‚ÌƒR[ƒh
 	if ky&1 {
 		sp_player_mydir = DIR_LEFT
 		sp_player_mypx = -pxadd
@@ -1801,6 +1839,9 @@
 		sp_player_mypx = pxadd
 		sp_player_myact=1
 	}
+	
+	}
+	
 
 	;x=myx+(sp_player_mypx>>14)
 	;if x<sp_player_x1 : sp_player_mypx=0
