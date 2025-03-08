@@ -16,6 +16,10 @@
 	hspvpad_set 2, PX_RESTORE@_vpad
 	hspvpad_set 3, PX_RESTORE@_vpad
 
+	//hspvpad_set 5, -1 // 右 〇 Z
+	//hspvpad_set 6, -1 // 上三角 X
+	//hspvpad_set 7, -1 // 下× C
+
 	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
 	df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"	; マップファイル読み込み
 	mapsx = _dotfw_curmapx			; マップサイズXを取得

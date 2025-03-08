@@ -486,8 +486,11 @@
 *tomenu
 	_menu = 100
 	df_paction *onbut1menu, PACTION_BUTTON
+	hspvpad_set BUT_X@_vpad, -1
 	df_paction *onbut2menu, PACTION_BUTTON2
+	hspvpad_set BUT_Z@_vpad, PX_RESTORE@_vpad
 	df_paction *onbut3menu, PACTION_BUTTON3
+	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *onkeymenu, PACTION_KEY
 	_prekey = 0
 	_menuy = 6
@@ -533,6 +536,9 @@
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
 	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // ’Ç‰Á
@@ -650,6 +656,9 @@
 	df_paction *onbut1title, PACTION_BUTTON
 	df_paction *onbut2title, PACTION_BUTTON2
 	df_paction *onbut3title, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *onkeytitle, PACTION_KEY
 	_prekey = 0
 	_menuy = 8
@@ -691,6 +700,9 @@
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
 	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // ’Ç‰Á
