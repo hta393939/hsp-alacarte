@@ -36,7 +36,7 @@
 	es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
 
 	WID_KEI = 4
-	celload "../../mapgl/data/kei16.png", WID_KEI
+	celload "../../jump/data/kei16.png", WID_KEI
 	es_sizeex 16,16, ,16,16, 0,0
 	frnum = 4
 	es_patanim 16, 4, 0,0, frnun, WID_KEI
@@ -69,9 +69,9 @@
 	es_get opt, mysp, ESI_OPTION
 	if opt & MASK_LADDER@HSP3MOD_DOTFW {
 		// ここでスピード0にすると一段下だけになる
-		//es_setp mysp, ESI_SPDY, 0, 0 // 上書き
-		
-		opt += -BIT_LADDER@HSP3MOD_DOTFW
+		es_setp mysp, ESI_SPDY, 0, 0 // 上書き
+
+		opt -= BIT_LADDER@HSP3MOD_DOTFW
 		es_setp mysp, ESI_OPTION, opt, 0
 
 		newchr = 40
@@ -116,7 +116,7 @@
 	if op == 1 {
 		goto *miss
 	}
-	if op == 2 {
+	if op == 2 { // ラダーイベント発火
 		es_setp mysp, ESI_SPDY, 0, 0
 		es_setp mysp, ESI_ACCELY, 0, 0
 		opt = 2 * BIT_LADDER@HSP3MOD_DOTFW
