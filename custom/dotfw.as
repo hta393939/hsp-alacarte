@@ -1771,7 +1771,7 @@
 	sp_player_myact = 0
 // NOTE: A 4000h WDS stick
 	if ky&(1 | KEY_A) {
-		sp_player_mydir = DIR_UP
+		sp_player_mydir = DIR_LEFT
 		sp_player_mypx = -sp_player_speedx
 		sp_player_myact=1
 	}
@@ -1787,7 +1787,7 @@
 	}
 	if ky&(8 | KEY_S) {
 		sp_player_mydir = DIR_DOWN
-		sp_player_mypy = -sp_player_speedy
+		sp_player_mypy = sp_player_speedy
 		sp_player_myact=1
 	}
 	es_apos sp_player,sp_player_mypx,sp_player_mypy
@@ -1803,6 +1803,12 @@
 	// NOTE: ladder
 	es_get opt, sp_player, ESI_OPTION
 	if opt & MASK_LADDER {
+	//if opt & (BIT_LADDER * 2) {
+	//if opt & BIT_LADDER {
+		// 中で下げる場合
+		//opt -= BIT_LADDER
+		//es_setp sp_player, ESI_OPTION, opt, 0
+
 		ladder_x = 65536 * 1
 		ladder_y = 65536 * 1
 		if ky & (1 | KEY_A) {
@@ -1855,6 +1861,7 @@
 	es_get sp_player_myres, sp_player,ESI_MOVERES
 	if (sp_player_myres&ESSPRES_GROUND)=0 : sp_player_myact=2
 
+	// NOTE: 説明では第三引数にマイナスを指定しろとあるが...
 	es_getbghit numinfo,sp_player_map
 	repeat numinfo
 		es_getbghit hitinfo,sp_player_map,cnt
@@ -1892,6 +1899,7 @@
 	return
 
 *pcont_normal
+	dialog "" : end // NOTE: NOTE: ここ通ってないが;;
 	;	ノーマル移動
 	ky=key@
 	es_getpos sp_player,myx,myy

@@ -499,6 +499,8 @@
 	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2
 	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // 削除
 
+	_giveupfactor = 0
+
 	lx = 10
 	df_mes "OPTION", lx + 7, 2, FONT_RED
 	df_mes "SE", lx, 8, FONT_GREEN
@@ -525,6 +527,13 @@
 
 *closemenu
 	_menu = 0
+
+	if _giveupfactor != 0 {
+		// NOTE: ギブアップ
+		gosub *totitle
+		return
+	}
+	
 	if _beforemenu == "main" {
 		gosub *tomain
 	} else {
@@ -598,8 +607,9 @@
 				gosub *setvol
 			}
 			if _menuy == 14 {
+				_giveupfactor = 0
 				if x > 0 {
-					gosub *totitle
+					_giveupfactor = 1
 				}
 			}
 			if _volswitch {
@@ -617,8 +627,8 @@
 	getreq ts, SYSREQ_TIMER
 	_prets = ts
 	
-	if key&PLAYER_KEY_ESC : end
-	
+	if key & PLAYER_KEY_ESC : end
+
 	_menu -= 1
 	if _menu == 0 {
 		_menu = 1
@@ -634,7 +644,12 @@
 	s = strf("%s %s", offons(0+1-i), offons(2+i))
 	df_mes s, lx, 8
 	df_mes strf("[ %2d]", _volfactor), lx, 10
-	df_mes "[ - ]  GIVE UP ", lx, 14
+	if _giveupfactor == 0 {
+		df_mes "[ - ]  GIVE UP ", lx, 14
+	} else {
+		df_mes "  -   [GIVE UP]", lx, 14
+		df_mes "GIVE UP", lx+7, 14, FONT_RED
+	}
 
 	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
 	df_update UPDATE_PAUSE
