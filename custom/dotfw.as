@@ -1821,8 +1821,8 @@
 			// NOTE: ’òŽq“o‚è”»’è
 			bgno = DOTFW_BGID_BGMAP + 1
 			bgpx = myx + 4
-			bgpy = myy + 4
-			es_bghitpos bgno, bgpx,bgpy, 8,12, 0,-PX_CLIMB, 0
+			bgpy = myy + 4 + 12 - PX_CLIMB
+			es_bghitpos bgno, bgpx,bgpy, 8,12, 0,-12, 0
 			num = stat
 			repeat num
 				es_getbghit hitinfo, bgno, cnt
