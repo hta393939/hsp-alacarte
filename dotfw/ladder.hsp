@@ -41,7 +41,7 @@
 
 	WID_KEI = 4
 	celload "../../jump/data/kei16.png", WID_KEI
-	es_sizeex 16,16, ,16,16, 0,0
+	es_sizeex 16,16, ,8,12, 4,4
 	frnum = 4
 	es_patanim 16, 4, 0,0, frnun, WID_KEI
 	es_patanim 20, 4, 16*4,0, frnum, WID_KEI
@@ -54,26 +54,61 @@
 
 	df_addplayer 200,90,16			; プレイヤーを追加
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
-	df_pmode 0, 2, 2
+	//df_pmode 0, 2, 2
+	df_pmode 0, 1,1
 
 // 4: notice , 2: event, 1: hold
 
-	
+	_presec = 0
+	_fpscount = 0
+	_lastfps = 0
+
 *main
+	getreq ts, SYSREQ_TIMER
+	cursec = ts / 1000
+	if cursec == _presec {
+		_fpscount += 1
+	} else {
+		_presec = cursec
+		_lastfps = _fpscount
+		_fpscount = 0
+	}
 	// key は dotfw でセットされるのか
 	if key & PLAYER_KEY_ESC : end		; [ESC]キーで終了
 	
 	df_getplayer
 	mysp = _dotfw_cursp
+	mypx_x = _dotfw_myx
+	mypx_y = _dotfw_myy
 
-	es_get curchr, mysp, ESI_CHRNO
-	mask = 0x3c00f
+//// 上へスイープ
+	dim hitinfo, 7
+	bgno = 1 + 1
+	pxx = mypx_x + 4
+	pxy = mypx_y + 4 + 12
+	es_bghitpos bgno, pxx,pxy, 8,12, 0,-12, 0
+	num = stat
+	repeat num
+		es_getbghit hitinfo, bgno, cnt
+		if hitinfo(0) != ESMAPHIT_EVENT {
+			continue
+		}
+		op = (hitinfo(2) >> 8) & 0xff
+		if op & BIT_OPLADDER@HSP3MOD_DOTFW {
+			_grabladder mysp
+			break
+		}
+	loop
+//// スイープここまで
+	
 
 	//// 更新
+	es_get curchr, mysp, ESI_CHRNO
+	mask = 0x3c00f
 	es_get opt, mysp, ESI_OPTION
 	if opt & MASK_LADDER@HSP3MOD_DOTFW {
 		// ここでスピード0にすると一段下だけになる
-		es_setp mysp, ESI_SPDY, 0, 0 // 上書き
+		//es_setp mysp, ESI_SPDY, 0, 0 // 上書き
 
 		opt -= BIT_LADDER@HSP3MOD_DOTFW
 		es_setp mysp, ESI_OPTION, opt, 0
@@ -99,10 +134,20 @@
 	df_mes strf("moveres, %04X, %d   ", result & ESSPRES_YBLOCK, ycnt), lx, 10, col
 	df_mes strf("moveres, %04X, %d   ", result & ESSPRES_GROUND, gcnt), lx, 11, col
 	df_mes strf("%d", mapevcnt), lx, 12, col
-	df_mes strf("notice, %d   ", noticecnt), lx, 13, col
+	df_mes strf("FPS, %d   ", _lastfps), lx, 13, col
 
 	df_update
 	goto *main
+
+#module
+#deffunc _grabladder int spno
+	es_setp spno, ESI_SPDY, 0, 0
+	es_setp spno, ESI_ACCELY, 0, 0
+	es_get opt, spno, ESI_OPTION
+	opt |= BIT_LADDER@HSP3MOD_DOTFW * 2
+	es_setp spno, ESI_OPTION, opt, 0 // 上書き
+	return
+#global
 
 *onmapnotice
 	noticecnt += 1
@@ -120,12 +165,15 @@
 	if op == 1 {
 		goto *miss
 	}
-	if op == 2 { // ラダーイベント発火
+	/*
+	if op & BIT_OPLADDER@HSP3MOD_DOTFW { // ラダーイベント発火
 		es_setp mysp, ESI_SPDY, 0, 0
 		es_setp mysp, ESI_ACCELY, 0, 0
-		opt = 2 * BIT_LADDER@HSP3MOD_DOTFW
-		es_setp mysp, ESI_OPTION, opt, 0
+		opt = BIT_LADDER@HSP3MOD_DOTFW * 2 // NOTE: 次の入力で参照される
+		es_setp mysp, ESI_OPTION, opt, 0 // 上書き		
+		//assert 0
 	}
+*/
 	return
 
 *mesrest

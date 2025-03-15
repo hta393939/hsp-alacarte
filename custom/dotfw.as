@@ -78,8 +78,10 @@
 #module HSP3MOD_DOTFW
 
 // NOTE: 
-#const MASK_LADDER 0xf0000000
-#const BIT_LADDER 0x10000000
+#const MASK_LADDER  0xf0000000
+#const BIT_LADDER   0x10000000
+#const PX_CLIMB 1
+#const BIT_OPLADDER 0x40
 #const KEY_A 0x4000
 #const KEY_W 0x8000
 #const KEY_D 0x10000
@@ -1803,14 +1805,8 @@
 	// NOTE: ladder
 	es_get opt, sp_player, ESI_OPTION
 	if opt & MASK_LADDER {
-	//if opt & (BIT_LADDER * 2) {
-	//if opt & BIT_LADDER {
-		// 中で下げる場合
-		//opt -= BIT_LADDER
-		//es_setp sp_player, ESI_OPTION, opt, 0
-
-		ladder_x = 65536 * 1
-		ladder_y = 65536 * 1
+		ladder_x = PX_CLIMB * 65536
+		ladder_y = PX_CLIMB * 65536
 		if ky & (1 | KEY_A) {
 			sp_player_mydir = DIR_LEFT
 			sp_player_mypx = - ladder_x
@@ -1822,10 +1818,25 @@
 			sp_player_myact=1
 		}
 		if ky & (2 | KEY_W) {
-			sp_player_mydir = DIR_UP
-			sp_player_mypy = - ladder_y
-			sp_player_myact=1
-			es_setp sp_player,ESI_SPDY, sp_player_mypy
+			// NOTE: 梯子登り判定
+			bgno = DOTFW_BGID_BGMAP + 1
+			bgpx = myx + 4
+			bgpy = myy + 4
+			es_bghitpos bgno, bgpx,bgpy, 8,12, 0,-PX_CLIMB, 0
+			num = stat
+			repeat num
+				es_getbghit hitinfo, bgno, cnt
+				if hitinfo(0) == ESMAPHIT_EVENT {
+					op = (hitinfo(2)>>8) & 0xff
+					if op & BIT_OPLADDER {
+						sp_player_mydir = DIR_UP
+						sp_player_mypy = - ladder_y
+						sp_player_myact=1
+						es_setp sp_player,ESI_SPDY, sp_player_mypy
+						break
+					}
+				}
+			loop
 		}
 		if ky & (8 | KEY_S) {
 			sp_player_mydir = DIR_DOWN
@@ -1862,7 +1873,9 @@
 	if (sp_player_myres&ESSPRES_GROUND)=0 : sp_player_myact=2
 
 	// NOTE: 説明では第三引数にマイナスを指定しろとあるが...
-	es_getbghit numinfo,sp_player_map
+	es_getbghit numinfo,sp_player_map, -1
+	//es_getbghit numinfo,sp_player_map // original
+	//assert 0
 	repeat numinfo
 		es_getbghit hitinfo,sp_player_map,cnt
 ;		if hitinfo=ESMAPHIT_HITX {
