@@ -11,6 +11,8 @@
 
 #const SCORE_DOWN 500
 
+#const NOREACT_COUNT 50
+
 #const FONT_WHITE 0
 #const FONT_DBLUE 1
 #const FONT_GREEN 2
@@ -93,6 +95,12 @@
 *main
 	// key は dotfw でセットされる
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
+
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	}
 
 // 移動アニメ
 	df_getplayer
@@ -456,8 +464,11 @@
 	return
 
 *onbut3
-	_beforescene = "main"
-	gosub *tomenu
+	if _noreact <= 1 {
+		_beforescene = "main"
+		gosub *tomenu
+		mmplay SE_CLICK
+	}
 	return // C
 
 
@@ -484,13 +495,14 @@
 
 
 *tomenu
-	_menu = 100
+	_noreact = NOREACT_COUNT
 	df_paction *onbut1menu, PACTION_BUTTON
 	hspvpad_set BUT_X@_vpad, -1
 	df_paction *onbut2menu, PACTION_BUTTON2
-	hspvpad_set BUT_Z@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_Z@_vpad, -1
 	df_paction *onbut3menu, PACTION_BUTTON3
-	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *onkeymenu, PACTION_KEY
 	_prekey = 0
 	_menuy = 6
@@ -505,8 +517,7 @@
 	df_mes "OPTION", lx + 7, 2, FONT_RED
 	df_mes "SE", lx, 8, FONT_GREEN
 	df_mes "SE VOLUME", lx,10, FONT_GREEN
-	df_mes "GIVE UP", lx + 1,14, FONT_GREEN
-	df_mes "!", lx,14, FONT_RED
+	df_mes "GIVE UP", lx,14, FONT_GREEN
 
 	_mainlb = *menuframe
 	return
@@ -516,17 +527,20 @@
 	return // X
 
 *onbut2menu
-	// NOTE: オプションメニューを終了する
-	gosub *closemenu
+	// 何もしない
 	return // Z
 
 *onbut3menu
-	// 何もしない
+	// NOTE: 連打対策を考える
+	if _noreact <= 1 {
+		gosub *closemenu
+		mmplay SE_CLICK
+	}
 	return // C
 
 
 *closemenu
-	_menu = 0
+	_noreact = NOREACT_COUNT
 
 	if _giveupfactor != 0 {
 		// NOTE: ギブアップ
@@ -547,7 +561,8 @@
 	df_paction *onbut3, PACTION_BUTTON3
 	hspvpad_set BUT_X@_vpad, -1
 	hspvpad_set BUT_Z@_vpad, -1
-	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
 	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
@@ -629,14 +644,15 @@
 	
 	if key & PLAYER_KEY_ESC : end
 
-	_menu -= 1
-	if _menu == 0 {
-		_menu = 1
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	}
 
 	lx = 22
 
-	df_mes "PUSH Z KEY FOR CLOSE", 11, 4
+	df_mes "PUSH C KEY FOR CLOSE", 11, 4
 	
 	sdim offons,4
 	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
@@ -667,13 +683,14 @@
 
 *totitle
 	_dontmes = 1
-	_menu = 100
+	_noreact = NOREACT_COUNT
 	df_paction *onbut1title, PACTION_BUTTON
 	df_paction *onbut2title, PACTION_BUTTON2
 	df_paction *onbut3title, PACTION_BUTTON3
 	hspvpad_set BUT_X@_vpad, PX_RESTORE@_vpad
 	hspvpad_set BUT_Z@_vpad, -1
-	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *onkeytitle, PACTION_KEY
 	_prekey = 0
 	_menuy = 8
@@ -705,19 +722,23 @@
 	return // Z
 
 *onbut3title
-	_beforescene = "title"
-	gosub *tomenu
+	if _noreact <= 1 {
+		_beforescene = "title"
+		gosub *tomenu
+		mmplay SE_CLICK
+	}
 	return // C
 
 *titletomain
 // タイトルからゲーム開始へ
-	_menu = 0
+	_noreact = NOREACT_COUNT
 	df_paction *onbut1, PACTION_BUTTON
 	df_paction *onbut2, PACTION_BUTTON2
 	df_paction *onbut3, PACTION_BUTTON3
 	hspvpad_set BUT_X@_vpad, -1
 	hspvpad_set BUT_Z@_vpad, -1
-	hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
 	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
@@ -799,9 +820,10 @@
 
 	if key & PLAYER_KEY_ESC : end
 
-	_menu -= 1
-	if _menu == 0 {
-		_menu = 1
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	}
 
 	repeat 6
@@ -897,10 +919,10 @@
 	
 	// 効果音
 	mmload "se_puyo.wav", SE_PUYO, 0
-	mmload "se_click.wav", SE_CLICK, 1
-	mmload "se_break2.wav", SE_BREAK2, 2
-	mmload "sel.wav", SE_SEL, 3
-	mmload "se_foot.wav", SE_FOOT, 4
+	mmload "se_click.wav", SE_CLICK, 0
+	mmload "se_break2.wav", SE_BREAK2, 0
+	mmload "sel.wav", SE_SEL, 0
+	mmload "se_foot.wav", SE_FOOT, 0
 	_volswitch = 1
 	_volfactor = 5
 	gosub *setvol
@@ -1188,6 +1210,9 @@ if (ua.includes('macintosh')) {
 }
 _s32[255] = osbit;
 
+let _prez = 0;
+let _prex = 0;
+let _prec = 0;
 const _update = () => {
   requestAnimationFrame(() => {
     _update();
@@ -1198,18 +1223,18 @@ const _update = () => {
     const povbits = [2, 6, 4, 12, 8, 9, 1, 3];
     const dead = 0.25;
     const gs = navigator.getGamepads();
+    let bp = 0;
     for (const g of gs) {
 	  if (!g) {
 	    continue;
 	  }
 	  padnum += 1
-	  // 10
+	  // 10軸
 	  for (let i = 0; i < 10; ++i) {
 	    const a = g.axes[i] || 0;
-	    _f64[i] = a;
+	    _f64[i] = a; // 最新で上書き
 	  }
 	  // 16bit
-	  let bp = 0;
 	  for (let i = 0; i < 31; ++i) {
 	    const b = g.buttons[i]?.pressed ? 1 : 0;
 	    bp |= b << i;
@@ -1218,15 +1243,25 @@ const _update = () => {
       // HSP stick
       // B1 1050h, B2 800h, B3 2000h 
       let key = 0;
-      if (bp & 1) {
+
+      const curx = (bp & 1) ? 1 : 0;
+	  const curz = (bp & 2) ? 1 : 0;
+	  const curc = (bp & (4 | 0x800)) ? 1 : 0; // B12
+
+	  if ((1 - _prex) & curx) {
 	    key |= 0x1000; // B1 X
 	  }
-	  if (bp & 2) {
+	  if ((1 - _prez) & curz) {
 	    key |= 0x0800; // B2 Z
 	  }
-	  if (bp & 4) {
+	  if ((1 - _prec) & curc) {
 	    key |= 0x2000; // B3 C
 	  }
+
+	  _prex = curx;
+	  _prez = curz;
+	  _prec = curc;
+
 	  const ax = _f64[0];
 	  const ay = _f64[1];
 	  const pov = _f64[9];
@@ -1243,10 +1278,10 @@ const _update = () => {
 		}
 	  }
 
-	  _s32[253] |= bp;
-	  _s32[252] |= key;
+	  _s32[252] |= key; // or で追加
 	}
 	_s32[251] = padnum;
+	_s32[253] |= bp; // 無加工の最新状態の or
   }
 
 };
