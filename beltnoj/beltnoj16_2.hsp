@@ -17,15 +17,16 @@
 	//df_setbgpicfile BGPIC_ID,"sozai5.jpg"	; 背景画像
 
 	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
-	df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "beltnojump16_16_1.tmap"	; マップファイル読み込み
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
 
 	//df_bgpoint 0, 10,10
 
-	df_mapaction MYMAP_ID, 0, 6 ; 重力とジャンプ(80, 8とか)
+	df_mapaction MYMAP_ID, 0, 6 ; 重力無し
 	//df_mapaction MYMAP_ID, 60, 6 ; 重力とジャンプ(80, 8とか)
+
 	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
 	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
 
@@ -47,16 +48,25 @@
 
 	df_addplayer 300,100,0			; プレイヤーを追加
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
-	df_pmode 0, 2, 2
+	df_pmode 0, 1, 1
+
+	if 1 {
+		//df_emode 0, 1, 60, 60, 2, 0, 0
+		//df_enemygen DIR_LEFT, 10, 60, 0
+	}
+
+	if 1 { // 画面外で消える
+		repeat 5
+			dir = DIR_DOWN
+			df_addenemy cnt * 50 + 200, 10, dir, 8, 0
+		loop
+	}
+
 	
 *main
 	// key は dotfw でセットされるのか
-	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
+	if key & PLAYER_KEY_ESC : end		; [ESC]キーで終了
 	df_getplayer
-	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
-	j=(_dotfw_myani>>2)&3
-	if _dotfw_myact!=1 : j=0
-	es_chr _dotfw_cursp, i+j
 
 	df_update
 	goto *main

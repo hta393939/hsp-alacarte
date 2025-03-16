@@ -17,7 +17,7 @@
 	//df_setbgpicfile BGPIC_ID,"sozai5.jpg"	; 背景画像
 
 	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
-	df_loadbgmap MYMAP_ID, "for16_1.tmap"	; マップファイル読み込み
+	df_loadbgmap MYMAP_ID, "widejump16_1.tmap"	; マップファイル読み込み
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
@@ -39,24 +39,94 @@
 		es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
 	}
 
-
-	df_mes "TAMANE DOT FRAMEWORK",1,1	; テキスト表示
+	WID_KEI = 4
+	celload "kei16.png", WID_KEI
+	es_sizeex 16,16, ,8,12, 4,4
+	frnum = 4
+	es_patanim 16, 4, 0,0, frnun, WID_KEI
+	es_patanim 20, 4, 16*4,0, frnum, WID_KEI
+	es_patanim 24, 4, 0,16, frnum, WID_KEI
+	es_patanim 28, 4, 16*4,16, frnum, WID_KEI
+	es_patanim 32, 4, 0,16*2, frnum, WID_KEI
+	es_patanim 36, 4, 16*4,16*2, frnum, WID_KEI
+	es_patanim 40, 4, 0,16*3, frnum, WID_KEI
+	es_patanim 44, 4, 16*4,16*3, frnum, WID_KEI
 
 	df_addplayer 300,200,0			; プレイヤーを追加
 	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
-	//df_pmode 0, 2, 2
+	//df_pmode 0, 1, 1
+
+	dim hitinfo, 7
 	
 *main
 	// key は dotfw でセットされるのか
 	if key&PLAYER_KEY_ESC : end		; [ESC]キーで終了
 	df_getplayer
-	i=0:if _dotfw_mydir=DIR_RIGHT : i=4
-	j=(_dotfw_myani>>2)&3
-	if _dotfw_myact!=1 : j=0
-	es_chr _dotfw_cursp, i+j
+	mysp = _dotfw_cursp
+	mypx_x = _dotfw_myx
+	mypx_y = _dotfw_myy
+
+//// 下へスイープ + 1
+
+	bgno = 1 + 1
+	pxx = mypx_x + 4
+	//pxy = mypx_y + 4 + 12
+	pxy = mypx_y + 4 - 12
+	//es_bghitpos bgno, pxx,pxy, 8,12, 0,-12, 0
+	es_bghitpos bgno, pxx,pxy, 8,12, 0,13,0
+	num = stat
+	repeat num
+		es_getbghit hitinfo, bgno, cnt
+		if hitinfo(0) != ESMAPHIT_EVENT {
+			continue
+		}
+		op = (hitinfo(2) >> 8) & 0xff
+		if op & BIT_OPLADDER@HSP3MOD_DOTFW {
+			_grabladder mysp
+			break
+		}
+	loop
+//// スイープここまで
+
+	//// 更新
+	es_get curchr, mysp, ESI_CHRNO
+	mask = 0x3c00f
+	es_get opt, mysp, ESI_OPTION
+	if opt & MASK_LADDER@HSP3MOD_DOTFW {
+		// ここでスピード0にすると一段下だけになる
+		//es_setp mysp, ESI_SPDY, 0, 0 // 上書き
+
+		opt -= BIT_LADDER@HSP3MOD_DOTFW
+		es_setp mysp, ESI_OPTION, opt, 0
+
+		newchr = 40
+		if newchr != (curchr & 0xfffc) | (key & mask) == 0 {
+			es_chr mysp, newchr
+		}
+	} else {
+		es_setp mysp, ESI_ACCELY, 60, 0
+
+		newchr = 28
+		if _dotfw_mydir == DIR_LEFT {
+			newchr = 24
+		}
+		if newchr != (curchr & 0xfffc) | (key & mask) == 0 | _dotfw_myact == 2 {
+			es_chr mysp, newchr
+		}
+	}
 
 	df_update
 	goto *main
+
+#module
+#deffunc _grabladder int spno
+	es_setp spno, ESI_SPDY, 0, 0
+	es_setp spno, ESI_ACCELY, 0, 0
+	es_get opt, spno, ESI_OPTION
+	opt |= BIT_LADDER@HSP3MOD_DOTFW * 2
+	es_setp spno, ESI_OPTION, opt, 0 // 上書き
+	return
+#global
 
 *player_mapev
 	;	イベント処理
