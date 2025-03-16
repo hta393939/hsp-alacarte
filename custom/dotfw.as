@@ -477,6 +477,9 @@
 	;
 	if _dotfw_vpad@ : hspvpad_init _dotfw_vpad@, _dotfw_vpadopt@		; バーチャルパッドの初期化
 
+	// NOTE: 
+	_usejspad = 0	
+
 	redraw 0
 	gosub *df_bgput
 	return
@@ -1359,9 +1362,10 @@
 	if _dotfw_vpad@ : hspvpad_key key@
 
 // NOTE: 
-	_padkey@ = 0
-	//_padkey@ = _padstick@()
-	key@ |= _padkey@
+	if _usejspad {
+		_padkey@ = _padstick@()
+		key@ |= _padkey@
+	}
 
 	redraw 0
 	viewcalc vptype_2d, zoomx, zoomy
@@ -1821,8 +1825,9 @@
 			// NOTE: 梯子登り判定
 			bgno = DOTFW_BGID_BGMAP + 1
 			bgpx = myx + 4
-			bgpy = myy + 4 + 12 - PX_CLIMB
-			es_bghitpos bgno, bgpx,bgpy, 8,12, 0,-12, 0
+			//bgpy = myy + 4 + 12 - PX_CLIMB
+			bgpy = myy + 4 - PX_CLIMB - 12
+			es_bghitpos bgno, bgpx,bgpy, 8,12, 0,13, 0
 			num = stat
 			repeat num
 				es_getbghit hitinfo, bgno, cnt

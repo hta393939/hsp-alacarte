@@ -16,6 +16,8 @@
 	hspvpad_set 2, PX_RESTORE@_vpad
 	hspvpad_set 3, PX_RESTORE@_vpad
 
+	_usejspad@HSP3MOD_DOTFW = 0
+
 	//hspvpad_set 5, -1 // 右 〇 Z
 	//hspvpad_set 6, -1 // 上三角 X
 	//hspvpad_set 7, -1 // 下× C
@@ -63,6 +65,8 @@
 	_fpscount = 0
 	_lastfps = 0
 
+	dim hitinfo, 7
+
 *main
 	getreq ts, SYSREQ_TIMER
 	cursec = ts / 1000
@@ -82,11 +86,14 @@
 	mypx_y = _dotfw_myy
 
 //// 上へスイープ
-	dim hitinfo, 7
+//// 下へスイープ + 1
+
 	bgno = 1 + 1
 	pxx = mypx_x + 4
-	pxy = mypx_y + 4 + 12
-	es_bghitpos bgno, pxx,pxy, 8,12, 0,-12, 0
+	//pxy = mypx_y + 4 + 12
+	pxy = mypx_y + 4 - 12
+	//es_bghitpos bgno, pxx,pxy, 8,12, 0,-12, 0
+	es_bghitpos bgno, pxx,pxy, 8,12, 0,13,0
 	num = stat
 	repeat num
 		es_getbghit hitinfo, bgno, cnt
