@@ -3,6 +3,7 @@ hsptmp
 obj
 *.ax
 
+*.zip
 *.html
 *.js
 *.wasm
