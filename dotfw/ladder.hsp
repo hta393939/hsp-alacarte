@@ -8,6 +8,8 @@
 	df_config "X320 Y240 Z200 vpad"
 	df_reset
 
+	gosub *readygame
+
 	_dotfw_contkey |= 0x3c000
 
 	hspvpad_set 2, -1 // 上
@@ -22,8 +24,9 @@
 	//hspvpad_set 6, -1 // 上三角 X
 	//hspvpad_set 7, -1 // 下× C
 
-	//df_loadbgmap MYMAP_ID, "test2.tmap"	; マップファイル読み込み
-	df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"	; マップファイル読み込み
+	//df_loadbgmap MYMAP_ID, "test2.tmap"
+	//df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"
+	df_loadbgmap MYMAP_ID, "../../widejump/data/jump64_16px.tmap"
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
 	mapsy = _dotfw_curmapy			; マップサイズYを取得
 	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
@@ -54,8 +57,9 @@
 	es_patanim 40, 4, 0,16*3, frnum, WID_KEI
 	es_patanim 44, 4, 16*4,16*3, frnum, WID_KEI
 
-	df_addplayer 200,90,16			; プレイヤーを追加
-	//df_pmode 0, 2	; 移動スピード(16ドットにはX=2がいい感じ
+	//df_addplayer 200,90,16			; プレイヤーを追加
+	df_addplayer 16 * 22, 16 * 30, 16			; プレイヤーを追加
+	df_bgpoint 1, 16 * 18, 16 * 20
 	//df_pmode 0, 2, 2
 	df_pmode 0, 1,1
 
@@ -172,6 +176,18 @@
 	if op == 1 {
 		goto *miss
 	}
+	if op & 0x20 { // 数字
+		ballnum = op - 0x20
+		if ballnum == _next {
+			map(mapsx * _dotfw_curmapy + _dotfw_curmapx) = 0 // アイテムを消す
+			_next += 1
+			if _next == 10 {
+				df_mes "GAME CLEAR!", 10, 10, FONT_RED + 2
+			}
+		}
+	}
+
+	
 	/*
 	if op & BIT_OPLADDER@HSP3MOD_DOTFW { // ラダーイベント発火
 		es_setp mysp, ESI_SPDY, 0, 0
@@ -187,4 +203,9 @@
 	return
 *miss
 	//df_pwipe ; プレイヤーを消去
+	return
+
+
+*readygame
+	_next = 1
 	return
