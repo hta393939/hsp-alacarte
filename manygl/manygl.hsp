@@ -31,7 +31,7 @@
 #enum WID_MON32
 #enum WID_MON16
 #enum WID_MENUCHIP
-#enum WID_SHOOT32
+#enum WID_SHOOT16
 #enum WID_MENUBACK
 #enum WID_EFFNUM
 
@@ -149,7 +149,7 @@
 	if _exp >= _nextexp {
 		_level += 1
 		_nextexp += 100
-			//gosub *levelup
+		//gosub *levelup
 	}
 
 // 自動発砲	
@@ -215,6 +215,10 @@
 	_dontmes = 0
 	goto _mainlb
 
+*levelup
+	gosub *toselect
+	return
+
 *setprun
 	// プレイヤーの速度をセットする 2,2 ぐらいだと素早く動ける
 	val = _prunfactor
@@ -228,9 +232,9 @@
 	chno = CHR_SHOOT_0 + 4
 	opt = 1
 	dir = DIR_LEFT
-	df_addpmis _x - 16, _y - 16, dir, 110 * 2, chno, opt
+	df_addpmis _x - 8, _y - 8, dir, 110 * 2, chno, opt
 	dir = DIR_RIGHT
-	df_addpmis _x - 16, _y - 16, dir, 110 * 2, chno, opt
+	df_addpmis _x - 8, _y - 8, dir, 110 * 2, chno, opt
 	return
 
 *fire2
@@ -238,37 +242,37 @@
 	chno = CHR_SHOOT_0 + 8
 	opt = 2
 	dir = dir256
-	df_addpmis _x - 16, _y - 16, dir - 16, 120 * 2, chno, opt
-	df_addpmis _x - 16, _y - 16, dir, 110 * 2, chno, opt
-	df_addpmis _x - 16, _y - 16, dir + 16, 120 * 2, chno, opt
+	df_addpmis _x - 8, _y - 8, dir - 8, 120 * 2, chno, opt
+	df_addpmis _x - 8, _y - 8, dir, 110 * 2, chno, opt
+	df_addpmis _x - 8, _y - 8, dir + 8, 120 * 2, chno, opt
 	return
 
 *fire3
 	return
 	chno = CHR_SHOOT_0 + 12
 	opt = 3
-	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 3, chno, opt
+	df_addpmis _x - 8 + mv * 8, _y - 8, dir, 100 * 3, chno, opt
 	return
 
 *fire4
 	return
 	chno = CHR_SHOOT_0 + 16
 	opt = 4
-	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
+	df_addpmis _x - 8 + mv * 8, _y - 8, dir, 100 * 2, chno, opt
 	return
 
 *fire5
 	return
 	chno = CHR_SHOOT_0 + 20
 	opt = 5
-	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
+	df_addpmis _x - 8 + mv * 8, _y - 8, dir, 100 * 2, chno, opt
 	return
 
 *fire6
 	return
 	chno = CHR_SHOOT_0 + 24
 	opt = 6
-	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
+	df_addpmis _x - 8 + mv * 8, _y - 8, dir, 100 * 2, chno, opt
 	return
 
 *fire7
@@ -276,7 +280,7 @@
 	dir = DIR_LEFT
 	chno = CHR_SHOOT_0 + 28
 	opt = 7
-	df_addpmis _x - 16 + mv * 8, _y - 16, dir, 100 * 2, chno, opt
+	df_addpmis _x - 8 + mv * 8, _y - 8, dir, 100 * 2, chno, opt
 	return
 
 *fire8
@@ -284,7 +288,7 @@
 	dir = DIR_RIGHT
 	chno = CHR_SHOOT_0
 	opt = 8
-	df_addpmis _x - 16 + 8, _y - 16, dir, 100 * 2, chno, opt
+	df_addpmis _x - 8 + 8, _y - 8, dir, 100 * 2, chno, opt
 	return
 
 *updatefire
@@ -408,12 +412,18 @@
 
 	scoreup = 10
 	_score += scoreup
+	// TODO: NOTE: 
+	if _score \ 100 == 50 {
+		gosub *levelup
+	}
+	
 	_emitnumdeco strf("%d", scoreup), x + rnd(4), y - 8, 2 // 2: 緑
 	if DEBUG >= 1 {
 		_emitnumdeco strf("+-*<>%d", scoreup), x,y - 8, 0 // 0: 白
 	}
-	mmplay SE_BREAK2
-	
+	if _volswitch {
+		mmplay SE_BREAK2
+	}
 	return
 
 
@@ -421,8 +431,10 @@
 	if DEBUG == 0 {
 		return
 	}
-	mmplay SE_PUYO
+	if _volswitch {
+		mmplay SE_PUYO
 	//mmplay SE_FOOT
+	}
 	
 	// 0下から反時計周り
 	x = _dotfw_myx
@@ -467,7 +479,9 @@
 	if _noreact <= 1 {
 		_beforescene = "main"
 		gosub *tomenu
-		mmplay SE_CLICK
+		if _volswitch {
+			mmplay SE_CLICK
+		}
 	}
 	return // C
 
@@ -534,7 +548,9 @@
 	// NOTE: 連打対策を考える
 	if _noreact <= 1 {
 		gosub *closemenu
-		mmplay SE_CLICK
+		if _volswitch {
+			mmplay SE_CLICK
+		}
 	}
 	return // C
 
@@ -551,7 +567,11 @@
 	if _beforemenu == "main" {
 		gosub *tomain
 	} else {
-		gosub *totitle
+		if _beforemenu == "select" {
+			gosub *toselect
+		} else {
+			gosub *totitle
+		}
 	}
 	return
 
@@ -725,7 +745,9 @@
 	if _noreact <= 1 {
 		_beforescene = "title"
 		gosub *tomenu
-		mmplay SE_CLICK
+		if _volswitch {
+			mmplay SE_CLICK
+		}
 	}
 	return // C
 
@@ -857,6 +879,107 @@
 	goto _mainlb
 
 
+//// セレクト
+
+*toselect
+// ゲームから選択へ
+	_noreact = NOREACT_COUNT
+	df_paction *onbut1select, PACTION_BUTTON
+	df_paction *onbut2select, PACTION_BUTTON2
+	df_paction *onbut3select, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, -1
+	//df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+
+	gosub *clearmes
+
+// 3つ表示する
+	y = 2
+	repeat 3
+		x = 1 + cnt * 12
+		df_mes strf("ABC%d", cnt), x, y, FONT_WHITE
+	loop
+
+	_selectx = 0
+
+	_mainlb = *selectframe
+	return
+
+*onkeyselect
+	x = 0
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	df_mes " ", _selectx, 8
+	if x != 0 {
+		_selectx += x
+		if _selectx < 0 {
+			_selectx = 0
+		} else {
+			if _selectx > 2 {
+				_selectx = 2
+			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
+		}
+	}
+
+	if _dontmes == 0 {
+		df_mes ">", _selectx, 8
+	}
+
+	_prekey = key
+	return
+
+*onbut1select
+	if _noreact > 1 {
+		return
+	}
+	// TODO: 未実装
+	//_selectx で動作をきめる
+	gosub *tomain
+	return
+
+*onbut2select
+	// 何もしない
+	return
+
+*onbut3select
+	if _noreact <= 1 {
+		_beforescene = "select"
+		gosub *tomenu
+		if _volswitch {
+			mmplay SE_CLICK
+		}
+	}
+	return
+
+*selectframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad		
+	}
+
+	
+
+	df_update UPDATE_PAUSE
+	goto _mainlb
+
+
 #module
 #deffunc _emitnumdeco str intext, int inx, int iny, int col
 // 数字のデコを発生させる
@@ -905,7 +1028,9 @@
 	es_getpos sp_player@HSP3MOD_DOTFW, x, y, ESSPSET_POS
 	_emitnumdeco text, x + 8, y, 1
 	es_kill spno
-	mmplay SE_PUYO
+	if _volswitch {
+		mmplay SE_PUYO
+	}
 	return
 
 
@@ -1011,14 +1136,14 @@
 	loop
 
 // ショット
-	celload "shootdot.png", WID_SHOOT32
-	es_size 32, 32, 50
-	//es_sizeex 32,32, , 16,16, 8,8, -16,-16
+	celload "shootdot16.png", WID_SHOOT16
+	//es_size 32, 32, 50
+	es_sizeex 16,16, , 10,10, (16-10)/2,(16-10)/2, ,
 	ch = CHR_SHOOT_0
 	repeat 8
-		px = cnt * 32
-		py = 5 * 32
-		es_pat ch, px, py, 0, WID_SHOOT32 
+		px = (cnt \ 4) * 16 * 2
+		py = (cnt / 4) * 16
+		es_patanim ch, 2, px, py, 15, WID_SHOOT16
 		ch += 4
 	loop
 	
@@ -1054,6 +1179,7 @@
 	gosub *totitle
 	gsel 0
 	return
+
 
 *readygame
 	// 1ゲームの開始初期化

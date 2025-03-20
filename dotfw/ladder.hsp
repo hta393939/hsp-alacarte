@@ -42,7 +42,7 @@
 	es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
 
 	WID_KEI = 4
-	celload "../../jump/data/kei16.png", WID_KEI
+	celload "../../widejump/data/kei16.png", WID_KEI
 	es_sizeex 16,16, ,8,12, 4,4
 	frnum = 4
 	es_patanim 16, 4, 0,0, frnun, WID_KEI
