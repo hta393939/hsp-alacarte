@@ -37,6 +37,7 @@
 
 #const BG_MENU 15
 
+#const CHR_CARDBACK 158
 #const CHR_MENUBACK 159
 
 #const CHR_KEI_D 160
@@ -48,8 +49,11 @@
 #const CHR_EFFNUM_0 768
 
 // 0 がなんか使われるんだけど...
-#const SPR_BACK0 1
-#const SPR_BACK1 2
+#const SPR_CARDBACK0 1
+#const SPR_CARDBACK1 2
+#const SPR_CARDBACK2 3
+#const SPR_BACK0 4
+#const SPR_BACK1 5
 
 #const KEY_LEFT 1
 #const KEY_UP 2
@@ -564,10 +568,10 @@
 		return
 	}
 	
-	if _beforemenu == "main" {
+	if _beforescene == "main" {
 		gosub *tomain
 	} else {
-		if _beforemenu == "select" {
+		if _beforescene == "select" {
 			gosub *toselect
 		} else {
 			gosub *totitle
@@ -585,8 +589,10 @@
 	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
-	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
-	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+	//es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
+	//es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+
+	gosub *hideback
 
 	gosub *clearmes
 	_mainlb = *main
@@ -742,12 +748,13 @@
 	return // Z
 
 *onbut3title
-	if _noreact <= 1 {
-		_beforescene = "title"
-		gosub *tomenu
-		if _volswitch {
-			mmplay SE_CLICK
-		}
+	if _noreact > 1 {
+		return
+	}
+	_beforescene = "title"
+	gosub *tomenu
+	if _volswitch {
+		mmplay SE_CLICK
 	}
 	return // C
 
@@ -763,9 +770,10 @@
 	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
-	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
-	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+	//es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
+	//es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
 
+	gosub *hideback
 	gosub *clearmes
 	_mainlb = *main
 	gosub *readygame
@@ -884,24 +892,32 @@
 *toselect
 // ゲームから選択へ
 	_noreact = NOREACT_COUNT
+	df_paction *onkeyselect, PACTION_KEY
 	df_paction *onbut1select, PACTION_BUTTON
 	df_paction *onbut2select, PACTION_BUTTON2
 	df_paction *onbut3select, PACTION_BUTTON3
 	hspvpad_set BUT_X@_vpad, -1
 	hspvpad_set BUT_Z@_vpad, -1
 	hspvpad_set BUT_C@_vpad, -1
-	//df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
-	es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
-	es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2 // 追加
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK1, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK2, ESSPFLAG_NODISP, 2
 
 	gosub *clearmes
 
 // 3つ表示する
-	y = 2
+	df_mes "SELECT", (40-6)/2, 2, FONT_RED
+	df_mes "PUSH X FOR SELECT", 12, 4, FONT_WHITE
+
+	y = 7
+	// 4, 15, 26
 	repeat 3
-		x = 1 + cnt * 12
-		df_mes strf("ABC%d", cnt), x, y, FONT_WHITE
+		x = 5 + cnt * 11
+		df_mes strf("ABCD123%d", cnt), x, y, FONT_WHITE
+		df_mes strf("ABC%d", cnt), x, y + 5, FONT_WHITE
 	loop
 
 	_selectx = 0
@@ -918,7 +934,9 @@
 		x += 1
 	}
 
-	df_mes " ", _selectx, 8
+	prex = 5 + _selectx * 11
+	y = 14
+	df_mes "          ", prex, y
 	if x != 0 {
 		_selectx += x
 		if _selectx < 0 {
@@ -934,7 +952,8 @@
 	}
 
 	if _dontmes == 0 {
-		df_mes ">", _selectx, 8
+		curx = 5 + _selectx * 11
+		df_mes " SELECT ", curx, y, FONT_RED
 	}
 
 	_prekey = key
@@ -947,6 +966,9 @@
 	// TODO: 未実装
 	//_selectx で動作をきめる
 	gosub *tomain
+	if _volswitch {
+		mmplay SE_CLICK
+	}
 	return
 
 *onbut2select
@@ -954,12 +976,13 @@
 	return
 
 *onbut3select
-	if _noreact <= 1 {
-		_beforescene = "select"
-		gosub *tomenu
-		if _volswitch {
-			mmplay SE_CLICK
-		}
+	if _noreact > 1 {
+		return
+	}
+	_beforescene = "select"
+	gosub *tomenu
+	if _volswitch {
+		mmplay SE_CLICK
 	}
 	return
 
@@ -971,10 +994,10 @@
 	_noreact -= 1
 	if _noreact <= 1 {
 		_noreact = 1
-		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad		
-	}
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad	
 
-	
+		hspvpad_set BUT_X@_vpad, PX_RESTORE@_vpad
+	}
 
 	df_update UPDATE_PAUSE
 	goto _mainlb
@@ -1001,6 +1024,16 @@
 	loop
 	return
 #global
+
+*hideback
+	// 背景スプライトを消す
+	flag = ESSPFLAG_NODISP
+	dim sps, 5
+	sps(0) = SPR_BACK0, SPR_BACK1, SPR_CARDBACK0, SPR_CARDBACK1, SPR_CARDBACK2
+	repeat 5
+		es_flag sps(cnt), flag, 1 // ビット追加
+	loop
+	return
 
 
 *clearsp
@@ -1063,8 +1096,24 @@
 	loop
 	_firetimers(0) = 1,1
 
-// メニュー背景
+// カード背景
 	celload "back256.png", WID_MENUBACK
+	es_size 8*8,8*8, 0
+	es_pat CHR_CARDBACK, 0,256, 0, WID_MENUBACK
+	es_set SPR_CARDBACK0, 5*8,7*8, CHR_CARDBACK
+	es_set SPR_CARDBACK1, 16*8,7*8, CHR_CARDBACK
+	es_set SPR_CARDBACK2, 27*8,7*8, CHR_CARDBACK
+	es_setp SPR_CARDBACK0, ESI_TYPE, TYPE_MENUBG, 0
+	es_setp SPR_CARDBACK1, ESI_TYPE, TYPE_MENUBG, 0
+	es_setp SPR_CARDBACK2, ESI_TYPE, TYPE_MENUBG, 0
+	flag = ESSPFLAG_NODISP | ESSPFLAG_DECORATE
+	//flag = ESSPFLAG_DECORATE // NOTE: いったん表示だけ
+	es_flag SPR_CARDBACK0, flag, 1
+	es_flag SPR_CARDBACK1, flag, 1
+	es_flag SPR_CARDBACK2, flag, 1
+
+// メニュー背景
+
 	es_size 256,256, 0
 	es_pat CHR_MENUBACK, 0,0,0, WID_MENUBACK
 	es_set SPR_BACK0, 0,0, CHR_MENUBACK
