@@ -589,11 +589,7 @@
 	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
 
-	//es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
-	//es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
-
 	gosub *hideback
-
 	gosub *clearmes
 	_mainlb = *main
 	return
@@ -769,9 +765,6 @@
 	hspvpad_set BUT_C@_vpad, -1
 	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
 	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
-
-	//es_flag SPR_BACK0, ESSPFLAG_NODISP, 1 // 追加
-	//es_flag SPR_BACK1, ESSPFLAG_NODISP, 1
 
 	gosub *hideback
 	gosub *clearmes
@@ -1204,8 +1197,6 @@
 	hspvpad_set 4, -1 // チェック無効
 
 // NOTE: マップ
-	//mapname = "survive16.tmap"
-	//mapname = "square32_16.tmap"
 	mapname = "squarewall32_16.tmap"
 	df_loadbgmap MYMAP_ID, mapname
 	mapsx = _dotfw_curmapx			; マップサイズXを取得
@@ -1421,7 +1412,7 @@ const _update = () => {
 
       const curx = (bp & 1) ? 1 : 0;
 	  const curz = (bp & 2) ? 1 : 0;
-	  const curc = (bp & (4 | 0x800)) ? 1 : 0; // B12
+	  const curc = (bp & (4 | 0x880)) ? 1 : 0; // B8, B12
 
 	  if ((1 - _prex) & curx) {
 	    key |= 0x1000; // B1 X
