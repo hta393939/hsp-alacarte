@@ -165,6 +165,7 @@
 	return
 
 *player_mapev
+	mysp = _dotfw_cursp
 	// bit 2
 	mapevcnt += 1
 	;	イベント処理
@@ -187,16 +188,21 @@
 		}
 	}
 
-	
-	/*
-	if op & BIT_OPLADDER@HSP3MOD_DOTFW { // ラダーイベント発火
-		es_setp mysp, ESI_SPDY, 0, 0
-		es_setp mysp, ESI_ACCELY, 0, 0
-		opt = BIT_LADDER@HSP3MOD_DOTFW * 2 // NOTE: 次の入力で参照される
-		es_setp mysp, ESI_OPTION, opt, 0 // 上書き		
-		//assert 0
+	if op & 0x10 { // warp
+		es_getpos mysp, x,y, ESSPSET_POS
+		if op == 0x11 { // 上ワープ 
+			y -= 8 * 16
+			es_pos mysp, x,y, ESSPSET_POS
+			es_pos mysp, 0,0, ESSPSET_ADDPOS			
+		}
+		if op == 0x12 { // 右ワープ
+			x += 8 * 16
+			es_pos mysp, x,y, ESSPSET_POS
+			es_pos mysp, 0,0, ESSPSET_ADDPOS
+		}
 	}
-*/
+
+
 	return
 
 *mesrest
