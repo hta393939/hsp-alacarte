@@ -1,0 +1,995 @@
+// @file dotfwchar.hsp
+
+*dotfwchar_ini
+
+	DEBUG = 1
+
+#const TYPE_MENUBG 512
+
+#define BGPIC_ID (0)
+#define MYMAP_ID (1)
+
+#define BGFRONT_ID (2)
+
+#const SCORE_DOWN 500
+
+#const NOREACT_COUNT 50
+
+#const FONT_WHITE 0
+#const FONT_DBLUE 1
+#const FONT_GREEN 2
+#const FONT_LIME 3
+#const FONT_RED 8
+#const FONT_GRAY 14
+
+#const SE_PUYO 0
+#const SE_CLICK 1
+#const SE_BREAK2 2
+#const SE_SEL 3
+#const SE_FOOT 4
+
+#enum WID_KEI16 = 24
+#enum WID_KEI8
+#enum WID_MON32
+#enum WID_MON16
+#enum WID_MENUCHIP
+#enum WID_SHOOT16
+#enum WID_MENUBACK
+#enum WID_EFFNUM
+
+#const BG_MENU 15
+
+#const CHR_CARDBACK 158
+#const CHR_MENUBACK 159
+
+#const CHR_KEI_D 160
+#const CHR_KEI_U (CHR_KEI_D+4)
+#const CHR_KEI_L (CHR_KEI_U+4)
+#const CHR_KEI_R (CHR_KEI_L+4)
+#const CHR_MON_0 256
+#const CHR_SHOOT_0 512
+#const CHR_EFFNUM_0 768
+
+// 0 がなんか使われるんだけど...
+#const SPR_CARDBACK0 1
+#const SPR_CARDBACK1 2
+#const SPR_CARDBACK2 3
+#const SPR_BACK0 4
+#const SPR_BACK1 5
+
+
+	runos = sysinfo(0)
+	_isem = 0
+	if instr(runos, 0, "Emscripten") == 0 {
+		_isem = 1
+	}
+	if _isem == 0 {
+		chdir "data"
+	}
+
+	gosub *preini
+
+	vpad = ""
+	_maxtouch = 1
+	if _maxtouch >= 1 {
+		vpad = "vpad"
+	}
+	df_config strf("ps1 Z200 %s", vpad) // 320x240
+	df_reset
+
+	title "kei's monster attack typeB 0.1.0"
+	_pxw = 320 // 画面ピクセル幅
+	_pxh = 240
+	_textw = _pxw / 8
+	_texth = _pxh / 8
+	gosub *appini
+
+	_mainlb = *titleframe
+	_dontmes = 0
+	return
+	//goto _mainlb
+
+
+*setprun
+	// プレイヤーの速度をセットする 2,2 ぐらいだと素早く動ける
+	val = _prunfactor
+	df_pmode 0, val, val
+	return
+
+
+
+*oneneframe
+	// 旧敵毎ターン処理
+	spno = _dotfw_cursp
+	x = _dotfw_myx
+	y = _dotfw_myy
+	sp100 = 25
+	es_aim spno, x,y, sp100
+	return
+
+*onenedest
+	opt = 123
+	df_emode ,,,,-1,,opt
+	x = _dotfw_cx
+	y = _dotfw_cy
+	chno = CHR_STONE4
+	// NOTE: アイテム出現
+	//df_additem x, y, chno, 0, DIR_DOWN, 0
+
+	scoreup = 10
+	_score += scoreup
+	// TODO: NOTE: 
+	if _score \ 100 == 50 {
+		gosub *levelup
+	}
+	
+	_emitnumdeco strf("%d", scoreup), x + rnd(4), y - 8, 2 // 2: 緑
+	if DEBUG >= 1 {
+		_emitnumdeco strf("+-*<>%d", scoreup), x,y - 8, 0 // 0: 白
+	}
+	if _volswitch {
+		mmplay SE_BREAK2
+	}
+	return
+
+
+*onbut1
+	if DEBUG == 0 {
+		return
+	}
+	if _volswitch {
+		mmplay SE_PUYO
+	//mmplay SE_FOOT
+	}
+	
+	// 0下から反時計周り
+	x = _dotfw_myx
+	y = _dotfw_myy
+	_x = x + 8
+	_y = y + 8
+	repeat length(_firelbs)
+		gosub _firelbs(cnt)
+	loop
+	return // X
+
+*onbut2
+	// Z
+
+	if DEBUG == 0 {
+		return
+	}
+
+	df_emodesub *oneneframe, 14
+	dir = DIR_DOWN
+	en = _dotfw_enemy
+	if en > 800 {
+		return
+	}
+	repeat 801 - en
+		x = 180 - 40 + (cnt \ 10) * 10
+		y = 200 + (cnt / 10) * 4
+		shootrate = 10 * 0
+		chno = CHR_MON_0 + 16 * 4 + rnd(4)
+		//chno = CHR_MONSTER1 + rnd(4) * 2
+
+		frnext = 10
+		sp100 = 50
+		df_emode 14, chno, shootrate, frnext, sp100
+		df_addenemy x,y, dir, 8, 0
+		spno = _dotfw_cursp
+		es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
+	loop
+	return
+
+*onbut3
+	if _noreact <= 1 {
+		_beforescene = "main"
+		gosub *tomenu
+		if _volswitch {
+			mmplay SE_CLICK
+		}
+	}
+	return // C
+
+
+
+*setvol
+	vol = _volfactor * _volfactor - 1000
+	repeat 5
+		mmvol cnt, vol
+	loop
+	return
+
+
+*tomenu
+	_noreact = NOREACT_COUNT
+	df_paction *onbut1menu, PACTION_BUTTON
+	hspvpad_set BUT_X@_vpad, -1
+	df_paction *onbut2menu, PACTION_BUTTON2
+	hspvpad_set BUT_Z@_vpad, -1
+	df_paction *onbut3menu, PACTION_BUTTON3
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	df_paction *onkeymenu, PACTION_KEY
+	_prekey = 0
+	_menuy = 6
+	gosub *clearmes
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // 削除
+
+	_giveupfactor = 0
+
+	lx = 10
+	df_mes "OPTION", lx + 7, 2, FONT_RED
+	df_mes "SE", lx, 8, FONT_GREEN
+	df_mes "SE VOLUME", lx,10, FONT_GREEN
+	df_mes "GIVE UP", lx,14, FONT_GREEN
+
+	_mainlb = *menuframe
+	return
+
+*onbut1menu
+	// 何もしない
+	return // X
+
+*onbut2menu
+	// 何もしない
+	return // Z
+
+*onbut3menu
+	// NOTE: 連打対策を考える
+	if _noreact <= 1 {
+		gosub *closemenu
+		if _volswitch {
+			mmplay SE_CLICK
+		}
+	}
+	return // C
+
+
+*closemenu
+	_noreact = NOREACT_COUNT
+
+	if _giveupfactor != 0 {
+		// NOTE: ギブアップ
+		gosub *totitle
+		return
+	}
+	
+	if _beforescene == "main" {
+		gosub *tomain
+	} else {
+		if _beforescene == "select" {
+			gosub *toselect
+		} else {
+			gosub *totitle
+		}
+	}
+	return
+
+*tomain
+	df_paction *onbut1, PACTION_BUTTON
+	df_paction *onbut2, PACTION_BUTTON2
+	df_paction *onbut3, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
+
+	gosub *hideback
+	gosub *clearmes
+	_mainlb = *main
+	return
+
+*onkeymenu
+	x = 0
+	y = 0
+	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
+		y += -1
+	}
+	if ((_prekey & KEY_DOWN) == 0) & ((key & KEY_DOWN) != 0) {
+		y += 1
+	}
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	df_mes " ", 8, _menuy
+	if y != 0 {
+		_menuy += y * 2
+		if _menuy < 6 {
+			_menuy = 6
+		} else {
+			if _menuy > 14 {
+				_menuy = 14
+			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
+		}
+	} else {
+		if x != 0 {
+			if _menuy == 8 {
+				if x > 0 {
+					_volswitch = 1
+				} else {
+					_volswitch = 0
+				}
+			}
+			if _menuy == 10 {
+				_volfactor += x
+				if _volfactor < 0 {
+					_volfactor = 0
+				} else {
+					if _volfactor > 10 {
+						_volfactor = 10
+					}
+				}
+				gosub *setvol
+			}
+			if _menuy == 14 {
+				_giveupfactor = 0
+				if x > 0 {
+					_giveupfactor = 1
+				}
+			}
+			if _volswitch {
+				mmplay SE_FOOT
+			}
+		}
+	}
+	df_mes ">", 8, _menuy
+
+	_prekey = key
+	return
+
+*menuframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+	
+	if key & PLAYER_KEY_ESC : end
+
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	}
+
+	lx = 22
+
+	df_mes "PUSH C KEY FOR CLOSE", 11, 4
+	
+	sdim offons,4
+	offons(0) = " OFF ", "[OFF]", "  ON ", "[ ON]"
+	i = _volswitch
+	s = strf("%s %s", offons(0+1-i), offons(2+i))
+	df_mes s, lx, 8
+	df_mes strf("[ %2d]", _volfactor), lx, 10
+	if _giveupfactor == 0 {
+		df_mes "[ - ]  GIVE UP ", lx, 14
+	} else {
+		df_mes "  -   [GIVE UP]", lx, 14
+		df_mes "GIVE UP", lx+7, 14, FONT_RED
+	}
+
+	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+	df_update UPDATE_PAUSE
+
+	if DEBUG >= 1 {
+		if _dontmes == 0 {
+			df_mes strf("_menuy, %d", _menuy), 1,1
+		}
+	}
+
+	_dontmes = 0
+	goto _mainlb
+
+//// タイトル
+
+*totitle
+	_dontmes = 1
+	_noreact = NOREACT_COUNT
+	df_paction *onbut1title, PACTION_BUTTON
+	df_paction *onbut2title, PACTION_BUTTON2
+	df_paction *onbut3title, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, PX_RESTORE@_vpad
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	df_paction *onkeytitle, PACTION_KEY
+	_prekey = 0
+	_menuy = 8
+	gosub *clearmes
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2 // 削除
+
+	lx = 10
+	df_mes "KEI'S MONSTER ATTACK!", lx, 3, 10
+
+	df_mes "PUSH X KEY FOR START ", lx, 6, FONT_WHITE
+
+	/*
+	df_mes "START", lx, 8, FONT_GREEN
+	// NOTE: 
+	df_mes "DIFFICULTY", lx,10, FONT_GREEN
+*/
+
+	_mainlb = *titleframe
+	return
+
+*onbut1title
+	gosub *titletomain
+	return // X
+
+*onbut2title
+	// 何もしない
+	return // Z
+
+*onbut3title
+	if _noreact > 1 {
+		return
+	}
+	_beforescene = "title"
+	gosub *tomenu
+	if _volswitch {
+		mmplay SE_CLICK
+	}
+	return // C
+
+*titletomain
+// タイトルからゲーム開始へ
+	_noreact = NOREACT_COUNT
+	df_paction *onbut1, PACTION_BUTTON
+	df_paction *onbut2, PACTION_BUTTON2
+	df_paction *onbut3, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, -1
+	//hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	df_paction *map2d_key@HSP3MOD_DOTFW, PACTION_KEY
+
+	gosub *hideback
+	gosub *clearmes
+	_mainlb = *main
+	gosub *readygame
+	return
+
+*onkeytitle
+	return
+	x = 0
+	y = 0
+	if ((_prekey & KEY_UP) == 0) & ((key & KEY_UP) != 0) {
+		y += -1
+	}
+	if ((_prekey & KEY_DOWN) == 0) & ((key & KEY_DOWN) != 0) {
+		y += 1
+	}
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	df_mes " ", 8, _menuy
+	if y != 0 {
+		_menuy += y * 2
+		if _menuy < 8 {
+			_menuy = 8
+		} else {
+			if _menuy > 10 {
+				_menuy = 10
+			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
+		}
+	} else {
+		if x != 0 {
+			if _menuy == 8 {
+				if x > 0 {
+					gosub *titletomain
+				}
+			}
+			if _menuy == 10 {
+				if x > 0 {
+					_diffifactor += 1
+					if _diffifactor >= 10 {
+						_diffifactor = 10
+					}
+				} else {
+					_diffifactor += -1
+					if _diffifactor <= 1 {
+						_diffifactor = 1
+					}
+				}
+			}
+			if _volswitch {
+				mmplay SE_FOOT
+			}
+		}
+	}
+	if _dontmes == 0 {
+		df_mes ">", 8, _menuy
+	}
+
+	_prekey = key
+	return
+
+*titleframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+
+	_gameovercount -= 1
+
+	if key & PLAYER_KEY_ESC : end
+
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad
+	}
+
+	repeat 6
+		df_mes " ", 8, cnt + 4
+	loop
+
+
+	lx = 22
+//	df_mes "[ - ]  START ", lx, 8
+//	df_mes strf("[ %2d]", _diffifactor), lx, 10
+
+	text = "          "
+	if ((ts \ 1000) < 800) & (_gameovercount > 0) {
+		text = "GAME OVER"
+	}
+	df_mes text, lx - 7, 14, FONT_RED
+	text = "                    "
+	if _score >= 0 {
+		text = strf("SCORE:%3d", _score)
+	}
+	df_mes text, lx - 7, 16
+
+	if DEBUG >= 1 {
+		df_mes strf("_menuy, %d", _menuy), 1,1
+	}
+
+	
+	//df_update UPDATE_PAUSE | UPDATE_NOCONTROL
+	df_update UPDATE_PAUSE
+	_dontmes = 0
+	goto _mainlb
+
+
+//// セレクト
+
+*toselect
+// ゲームから選択へ
+	_noreact = NOREACT_COUNT
+	df_paction *onkeyselect, PACTION_KEY
+	df_paction *onbut1select, PACTION_BUTTON
+	df_paction *onbut2select, PACTION_BUTTON2
+	df_paction *onbut3select, PACTION_BUTTON3
+	hspvpad_set BUT_X@_vpad, -1
+	hspvpad_set BUT_Z@_vpad, -1
+	hspvpad_set BUT_C@_vpad, -1
+
+	es_flag SPR_BACK0, ESSPFLAG_NODISP, 2 // 追加
+	es_flag SPR_BACK1, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK0, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK1, ESSPFLAG_NODISP, 2
+	es_flag SPR_CARDBACK2, ESSPFLAG_NODISP, 2
+
+	gosub *clearmes
+
+// 3つ表示する
+	df_mes "SELECT", (40-6)/2, 2, FONT_RED
+	df_mes "PUSH X FOR SELECT", 12, 4, FONT_WHITE
+
+	y = 7
+	// 4, 15, 26
+	repeat 3
+		x = 5 + cnt * 11
+		df_mes strf("ABCD123%d", cnt), x, y, FONT_WHITE
+		df_mes strf("ABC%d", cnt), x, y + 5, FONT_WHITE
+	loop
+
+	_selectx = 0
+
+	_mainlb = *selectframe
+	return
+
+*onkeyselect
+	x = 0
+	if ((_prekey & KEY_LEFT) == 0) & ((key & KEY_LEFT) != 0) {
+		x += -1
+	}
+	if ((_prekey & KEY_RIGHT) == 0) & ((key & KEY_RIGHT) != 0) {
+		x += 1
+	}
+
+	prex = 5 + _selectx * 11
+	y = 14
+	df_mes "          ", prex, y
+	if x != 0 {
+		_selectx += x
+		if _selectx < 0 {
+			_selectx = 0
+		} else {
+			if _selectx > 2 {
+				_selectx = 2
+			}
+		}
+		if _volswitch {
+			mmplay SE_FOOT
+		}
+	}
+
+	if _dontmes == 0 {
+		curx = 5 + _selectx * 11
+		df_mes " SELECT ", curx, y, FONT_RED
+	}
+
+	_prekey = key
+	return
+
+*onbut1select
+	if _noreact > 1 {
+		return
+	}
+	// TODO: 未実装
+	//_selectx で動作をきめる
+	gosub *tomain
+	if _volswitch {
+		mmplay SE_CLICK
+	}
+	return
+
+*onbut2select
+	// 何もしない
+	return
+
+*onbut3select
+	if _noreact > 1 {
+		return
+	}
+	_beforescene = "select"
+	gosub *tomenu
+	if _volswitch {
+		mmplay SE_CLICK
+	}
+	return
+
+*selectframe
+	// メニュー中はカウント進めない
+	getreq ts, SYSREQ_TIMER
+	_prets = ts
+
+	_noreact -= 1
+	if _noreact <= 1 {
+		_noreact = 1
+		hspvpad_set BUT_C@_vpad, PX_RESTORE@_vpad	
+
+		hspvpad_set BUT_X@_vpad, PX_RESTORE@_vpad
+	}
+
+	df_update UPDATE_PAUSE
+	goto _mainlb
+
+
+#module
+#deffunc _emitnumdeco str intext, int inx, int iny, int col
+// 数字のデコを発生させる
+	text = "" + intext
+	num = strlen(text)
+	x = inx - num * 4
+	y = iny - 4
+	parentbg = 2
+	repeat num
+		i = peek(text, cnt) & 0xf
+		i += col * 16
+		if i >= 0 & i < 64 {
+			decono = _numdecos@(i)
+			es_setdeco x, y, decono
+			spno = stat
+			es_setparent spno, parentbg, 1 // 1: BGマップ
+		}
+		x += 8
+	loop
+	return
+#global
+
+*hideback
+	// 背景スプライトを消す
+	flag = ESSPFLAG_NODISP
+	dim sps, 5
+	sps(0) = SPR_BACK0, SPR_BACK1, SPR_CARDBACK0, SPR_CARDBACK1, SPR_CARDBACK2
+	repeat 5
+		es_flag sps(cnt), flag, 1 // ビット追加
+	loop
+	return
+
+
+*clearsp
+	// プレイヤーと背景用以外を消す
+	repeat _dotfw_essmax
+		if sp_player@HSP3MOD_DOTFW == cnt {
+			continue
+		}
+		es_get result, cnt, ESI_TYPE
+		if result & TYPE_MENUBG {
+			continue
+		}
+		es_kill cnt
+	loop
+	return
+
+*onmiss
+	spno = _dotfw_cursp
+	scoredown = SCORE_DOWN
+	_score -= scoredown
+	if _score < 0 {
+		_score = 0
+	}
+	text = strf("-%d", scoredown)
+	es_getpos sp_player@HSP3MOD_DOTFW, x, y, ESSPSET_POS
+	_emitnumdeco text, x + 8, y, 1
+	es_kill spno
+	if _volswitch {
+		mmplay SE_PUYO
+	}
+	return
+
+
+*appini
+	_dotfw_joystick = 0
+	_dotfw_contkey = MASK_MOVE
+
+	_diffifactor = 5
+
+	_score = -1
+	
+	// 効果音
+	mmload "se_puyo.wav", SE_PUYO, 0
+	mmload "se_click.wav", SE_CLICK, 0
+	mmload "se_break2.wav", SE_BREAK2, 0
+	mmload "sel.wav", SE_SEL, 0
+	mmload "se_foot.wav", SE_FOOT, 0
+	_volswitch = 1
+	_volfactor = 5
+	gosub *setvol
+
+// ショットルーチン
+	ldim _firelbs, 9
+	_firelbs(0) = *nop, *fire1, *fire2, *fire3, *fire4, *fire5, *fire6, *fire7, *fire8
+	dim _firecools, 9
+	_firecools(0) = 60,60,60,  60, 60, 60,  60, 60, 60
+	dim _firetimers, 9
+	repeat 9
+		_firetimers(cnt) = _firecools(cnt)
+	loop
+	_firetimers(0) = 1,1
+
+// カード背景
+	celload "back256.png", WID_MENUBACK
+	es_size 8*8,8*8, 0
+	es_pat CHR_CARDBACK, 0,256, 0, WID_MENUBACK
+	es_set SPR_CARDBACK0, 5*8,7*8, CHR_CARDBACK
+	es_set SPR_CARDBACK1, 16*8,7*8, CHR_CARDBACK
+	es_set SPR_CARDBACK2, 27*8,7*8, CHR_CARDBACK
+	es_setp SPR_CARDBACK0, ESI_TYPE, TYPE_MENUBG, 0
+	es_setp SPR_CARDBACK1, ESI_TYPE, TYPE_MENUBG, 0
+	es_setp SPR_CARDBACK2, ESI_TYPE, TYPE_MENUBG, 0
+	flag = ESSPFLAG_NODISP | ESSPFLAG_DECORATE
+	//flag = ESSPFLAG_DECORATE // NOTE: いったん表示だけ
+	es_flag SPR_CARDBACK0, flag, 1
+	es_flag SPR_CARDBACK1, flag, 1
+	es_flag SPR_CARDBACK2, flag, 1
+
+// メニュー背景
+
+	es_size 256,256, 0
+	es_pat CHR_MENUBACK, 0,0,0, WID_MENUBACK
+	es_set SPR_BACK0, 0,0, CHR_MENUBACK
+	es_set SPR_BACK1, 256,0, CHR_MENUBACK
+	es_setp SPR_BACK0, ESI_TYPE, TYPE_MENUBG, 0 // 0: 上書き
+	es_setp SPR_BACK1, ESI_TYPE, TYPE_MENUBG, 0
+	flag = ESSPFLAG_NODISP | ESSPFLAG_DECORATE
+	es_flag SPR_BACK0, flag, 1 // 追加
+	es_flag SPR_BACK1, flag, 1
+
+// エフェ
+	celload "mfont8.png", WID_EFFNUM
+	//celdiv WID_EFFNUM, 8,8
+	es_size 8,8, 0
+	dim _numdecos, 64
+	op = ESDECO_FADEOUT
+	repeat 8*8
+		i = cnt
+		x = (i \ 8) * 8
+		y = i / 8 * 8
+		chno = CHR_EFFNUM_0 + i
+		es_pat chno, x,y, 0, WID_EFFNUM
+		es_regdeco chno, op, DIR_UP, 32, _dotfw_fps * 2 // 最後の引数は上書きのときだけ
+		decono = stat
+		_numdecos(i) = decono
+	loop
+
+// けいキャラ
+	celload "kei16.png", WID_KEI16
+	es_size 16, 16, 100
+
+	frnum = 6
+
+	ch = CHR_KEI_D
+	es_patanim ch, 4, 0,0, frnum, WID_KEI16
+
+	ch = CHR_KEI_U
+	es_patanim ch, 4, 16*4,0, frnum, WID_KEI16
+
+	ch = CHR_KEI_L
+	es_patanim ch, 4, 0,16, frnum, WID_KEI16
+
+	ch = CHR_KEI_R
+	es_patanim ch, 4, 16*4,16, frnum, WID_KEI16
+
+	df_paction *onmiss, PACTION_MISS
+	df_paction *onitem, PACTION_ITEM
+	//df_paction *onmapitem, PACTION_MAPITEM
+
+// モンスター
+	celload "mondot.png", WID_MON32
+	es_size 32, 32, 50
+
+	ch = CHR_MON_0
+	repeat 16
+		x = (cnt \ 2) * 32 * 4
+		y = (cnt / 2) * 32
+		es_patanim ch, 4, x,y, frnum, WID_MON32
+		ch += 4
+	loop
+
+	celload "chip16white.png", WID_MON16
+	es_size 16, 16, 50
+	repeat 1
+		px = 8 * 16
+		py = 13 * 16
+		es_patanim ch, 4, px,py, frnum, WID_MON16
+		ch += 4
+	loop
+
+// ショット
+	celload "shootdot16.png", WID_SHOOT16
+	//es_size 32, 32, 50
+	es_sizeex 16,16, , 10,10, (16-10)/2,(16-10)/2, ,
+	ch = CHR_SHOOT_0
+	repeat 8
+		px = (cnt \ 4) * 16 * 2
+		py = (cnt / 4) * 16
+		es_patanim ch, 2, px, py, 15, WID_SHOOT16
+		ch += 4
+	loop
+	
+// グローバル敵破壊時
+	df_eaction *onenedest, EACTION_DESTROY
+
+
+// ボタン
+	hspvpad_set 4, -1 // チェック無効
+
+// NOTE: マップ
+	mapname = "squarewall32_16.tmap"
+	df_loadbgmap MYMAP_ID, mapname
+	mapsx = _dotfw_curmapx			; マップサイズXを取得
+	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	_mappxw = mapsx * 16
+	_mappxh = mapsy * 16
+	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
+
+	//df_bgpoint 0, 10,10
+
+	// mapaction セットしなかったらショットも撃てる
+	// セットしないとフルスクロールしない
+	df_mapaction MYMAP_ID, 0, 6 ; 重力無し
+
+	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
+	//df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+	df_addplayer 300,100, CHR_KEI_D
+
+	gosub *totitle
+	gsel 0
+	return
+
+
+*readygame
+	// 1ゲームの開始初期化
+	_prets = 0
+	_mseccount = 0
+	// NOTE: ゲーム時間
+	_endcount = 1000 * 120
+	//_endcount = 1000 * 3
+	_score = 0
+	_exp = 0
+	_exppool = 0
+	_nextexp = 100
+	_level = 1
+	_prunfactor = 1
+	gosub *setprun
+
+	gosub *clearsp
+
+	// TODO: map
+	es_pos sp_player@HSP3MOD_DOTFW, 300,100, ESSPSET_POS
+	df_bgpoint DOTFW_BGID_BGMAP + 0, 300, 24
+	//df_getbgpoint x, y, DOTFW_BGID_BGMAP + 0
+
+	getreq ts, SYSREQ_TIMER
+	_presec = 0
+	_fpscount = 0
+	return
+
+/*
+*readymenubg
+	// 枠あり背景
+	_mew = _pxw / 16
+	_meh = _pxh / 16
+	dim menubgbuf, _mew * _meh
+	repeat _meh
+		y = cnt
+		repeat _mew
+			x = cnt
+			i = x + _mew * y
+			mx = 0
+			my = 0
+			if x == 0 {
+				mx = -1
+			} else {
+				if x == _mew - 1 {
+					mx = 1
+				}
+			}
+			if y == 0 {
+				my = -1
+			} else {
+				if y == _meh / 2 + 1 {
+					my = 1
+				}
+			}
+			if y > _meh / 2 + 1 {
+				mx = 0
+			}
+			val = (mx + 14) + (my + 14) * 16
+			menubgbuf(i) = val
+		loop
+	loop
+	celload "chip16white.png", WID_MENUCHIP
+	celdiv WID_MENUCHIP, 16,16, 0,0
+	// 黒透明は黒になる
+	es_bgmap BG_MENU, menubgbuf, _mew,_meh, _mew,_meh, WID_MENUCHIP, ESBGOPT_NOTRANS
+	return
+*/
+
+*clearmes
+	// テキスト面全消し
+	spc = ""
+	repeat _textw
+		spc += " "
+	loop
+	repeat _texth
+		df_mes spc, 0,cnt
+	loop
+	return
+
+*nop
+	// 何もしないサブルーチン
+	return
+
