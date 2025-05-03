@@ -797,33 +797,6 @@
 	return
 
 
-*readygame
-	// 1ƒQ[ƒ€‚ÌŠJn‰Šú‰»
-	_prets = 0
-	_mseccount = 0
-	// NOTE: ƒQ[ƒ€ŠÔ
-	_endcount = 1000 * 120
-	//_endcount = 1000 * 3
-	_score = 0
-	_exp = 0
-	_exppool = 0
-	_nextexp = 100
-	_level = 1
-	_prunfactor = 1
-	gosub *setprun
-
-	gosub *clearsp
-
-	// TODO: map
-	es_pos sp_player@HSP3MOD_DOTFW, 300,100, ESSPSET_POS
-	df_bgpoint DOTFW_BGID_BGMAP + 0, 300, 24
-	//df_getbgpoint x, y, DOTFW_BGID_BGMAP + 0
-
-	getreq ts, SYSREQ_TIMER
-	_presec = 0
-	_fpscount = 0
-	return
-
 /*
 *readymenubg
 	// ˜g‚ ‚è”wŒi
