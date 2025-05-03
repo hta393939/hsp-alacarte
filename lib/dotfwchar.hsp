@@ -96,103 +96,6 @@
 	df_pmode 0, val, val
 	return
 
-
-
-*oneneframe
-	// 旧敵毎ターン処理
-	spno = _dotfw_cursp
-	x = _dotfw_myx
-	y = _dotfw_myy
-	sp100 = 25
-	es_aim spno, x,y, sp100
-	return
-
-*onenedest
-	opt = 123
-	df_emode ,,,,-1,,opt
-	x = _dotfw_cx
-	y = _dotfw_cy
-	chno = CHR_STONE4
-	// NOTE: アイテム出現
-	//df_additem x, y, chno, 0, DIR_DOWN, 0
-
-	scoreup = 10
-	_score += scoreup
-	// TODO: NOTE: 
-	if _score \ 100 == 50 {
-		gosub *levelup
-	}
-	
-	_emitnumdeco strf("%d", scoreup), x + rnd(4), y - 8, 2 // 2: 緑
-	if DEBUG >= 1 {
-		_emitnumdeco strf("+-*<>%d", scoreup), x,y - 8, 0 // 0: 白
-	}
-	if _volswitch {
-		mmplay SE_BREAK2
-	}
-	return
-
-
-*onbut1
-	if DEBUG == 0 {
-		return
-	}
-	if _volswitch {
-		mmplay SE_PUYO
-	//mmplay SE_FOOT
-	}
-	
-	// 0下から反時計周り
-	x = _dotfw_myx
-	y = _dotfw_myy
-	_x = x + 8
-	_y = y + 8
-	repeat length(_firelbs)
-		gosub _firelbs(cnt)
-	loop
-	return // X
-
-*onbut2
-	// Z
-
-	if DEBUG == 0 {
-		return
-	}
-
-	df_emodesub *oneneframe, 14
-	dir = DIR_DOWN
-	en = _dotfw_enemy
-	if en > 800 {
-		return
-	}
-	repeat 801 - en
-		x = 180 - 40 + (cnt \ 10) * 10
-		y = 200 + (cnt / 10) * 4
-		shootrate = 10 * 0
-		chno = CHR_MON_0 + 16 * 4 + rnd(4)
-		//chno = CHR_MONSTER1 + rnd(4) * 2
-
-		frnext = 10
-		sp100 = 50
-		df_emode 14, chno, shootrate, frnext, sp100
-		df_addenemy x,y, dir, 8, 0
-		spno = _dotfw_cursp
-		es_flag spno, ESSPFLAG_NOWIPE, 1 // 1: 追加
-	loop
-	return
-
-*onbut3
-	if _noreact <= 1 {
-		_beforescene = "main"
-		gosub *tomenu
-		if _volswitch {
-			mmplay SE_CLICK
-		}
-	}
-	return // C
-
-
-
 *setvol
 	vol = _volfactor * _volfactor - 1000
 	repeat 5
@@ -730,22 +633,6 @@
 		}
 		es_kill cnt
 	loop
-	return
-
-*onmiss
-	spno = _dotfw_cursp
-	scoredown = SCORE_DOWN
-	_score -= scoredown
-	if _score < 0 {
-		_score = 0
-	}
-	text = strf("-%d", scoredown)
-	es_getpos sp_player@HSP3MOD_DOTFW, x, y, ESSPSET_POS
-	_emitnumdeco text, x + 8, y, 1
-	es_kill spno
-	if _volswitch {
-		mmplay SE_PUYO
-	}
 	return
 
 
