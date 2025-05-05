@@ -1,12 +1,9 @@
 #include "dotfw.as"
 
-#include "../lib/input.hsp"
-#include "../lib/dotfwchar.hsp"
-
-	gosub *input_ini
-	gosub *dotfwchar_ini
-
 	DEBUG = 1
+
+	gosub *dotfwchar_const
+	gosub *input_const
 
 
 	runos = sysinfo(0)
@@ -35,8 +32,11 @@
 	_texth = _pxh / 8
 	gosub *appini
 
+	gosub *jsini
+
 	_mainlb = *titleframe
 	_dontmes = 0
+	
 	goto _mainlb
 	
 *main
@@ -526,3 +526,8 @@
 	es_bgmap BG_MENU, menubgbuf, _mew,_meh, _mew,_meh, WID_MENUCHIP, ESBGOPT_NOTRANS
 	return
 */
+
+
+#include "../lib/input.hsp"
+#include "../lib/dotfwchar.hsp"
+

@@ -1,8 +1,6 @@
 // @file dotfwchar.hsp
 
-*dotfwchar_ini
-
-	DEBUG = 1
+*dotfwchar_const
 
 #const TYPE_MENUBG 512
 
@@ -57,37 +55,7 @@
 #const SPR_BACK0 4
 #const SPR_BACK1 5
 
-
-	runos = sysinfo(0)
-	_isem = 0
-	if instr(runos, 0, "Emscripten") == 0 {
-		_isem = 1
-	}
-	if _isem == 0 {
-		chdir "data"
-	}
-
-	gosub *preini
-
-	vpad = ""
-	_maxtouch = 1
-	if _maxtouch >= 1 {
-		vpad = "vpad"
-	}
-	df_config strf("ps1 Z200 %s", vpad) // 320x240
-	df_reset
-
-	title "kei's monster attack typeB 0.1.0"
-	_pxw = 320 // 画面ピクセル幅
-	_pxh = 240
-	_textw = _pxw / 8
-	_texth = _pxh / 8
-	gosub *appini
-
-	_mainlb = *titleframe
-	_dontmes = 0
 	return
-	//goto _mainlb
 
 
 *setprun
@@ -796,47 +764,6 @@
 	gsel 0
 	return
 
-
-/*
-*readymenubg
-	// 枠あり背景
-	_mew = _pxw / 16
-	_meh = _pxh / 16
-	dim menubgbuf, _mew * _meh
-	repeat _meh
-		y = cnt
-		repeat _mew
-			x = cnt
-			i = x + _mew * y
-			mx = 0
-			my = 0
-			if x == 0 {
-				mx = -1
-			} else {
-				if x == _mew - 1 {
-					mx = 1
-				}
-			}
-			if y == 0 {
-				my = -1
-			} else {
-				if y == _meh / 2 + 1 {
-					my = 1
-				}
-			}
-			if y > _meh / 2 + 1 {
-				mx = 0
-			}
-			val = (mx + 14) + (my + 14) * 16
-			menubgbuf(i) = val
-		loop
-	loop
-	celload "chip16white.png", WID_MENUCHIP
-	celdiv WID_MENUCHIP, 16,16, 0,0
-	// 黒透明は黒になる
-	es_bgmap BG_MENU, menubgbuf, _mew,_meh, _mew,_meh, WID_MENUCHIP, ESBGOPT_NOTRANS
-	return
-*/
 
 *clearmes
 	// テキスト面全消し

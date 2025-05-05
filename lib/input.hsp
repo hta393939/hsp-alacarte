@@ -1,6 +1,6 @@
 // @file input.hsp
 
-*input_ini
+*input_const
 
 #const KEY_LEFT 1
 #const KEY_UP 2
