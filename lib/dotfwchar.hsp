@@ -1,6 +1,6 @@
 // @file dotfwchar.hsp
+	goto _skiplb
 
-*dotfwchar_const
 
 #const TYPE_MENUBG 512
 
@@ -54,8 +54,6 @@
 #const SPR_CARDBACK2 3
 #const SPR_BACK0 4
 #const SPR_BACK1 5
-
-	return
 
 
 *setprun

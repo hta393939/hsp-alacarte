@@ -2,13 +2,15 @@
 
 	DEBUG = 1
 
-	gosub *dotfwchar_const
-	gosub *input_const
+	_skiplb = *include_skip
+#include "../lib/input.hsp"
+#include "../lib/dotfwchar.hsp"
+*include_skip
 
 
-	runos = sysinfo(0)
+	_runos = sysinfo(0)
 	_isem = 0
-	if instr(runos, 0, "Emscripten") == 0 {
+	if instr(_runos, 0, "Emscripten") == 0 {
 		_isem = 1
 	}
 	if _isem == 0 {
@@ -36,7 +38,7 @@
 
 	_mainlb = *titleframe
 	_dontmes = 0
-	
+
 	goto _mainlb
 	
 *main
@@ -528,6 +530,4 @@
 */
 
 
-#include "../lib/input.hsp"
-#include "../lib/dotfwchar.hsp"
 

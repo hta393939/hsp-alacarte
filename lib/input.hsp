@@ -1,6 +1,6 @@
 // @file input.hsp
+	goto _skiplb
 
-*input_const
 
 #const KEY_LEFT 1
 #const KEY_UP 2
@@ -26,7 +26,6 @@
 
 #const MASK_MOVE 0x3c00f
 
-	return
 
 *jsini
 	if _isem == 0 {
