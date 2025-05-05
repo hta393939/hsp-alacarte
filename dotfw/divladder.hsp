@@ -1,0 +1,217 @@
+#include "dotfw.as"
+#define BGPIC_ID (0)
+#define MYMAP_ID (1)
+
+#define BGFRONT_ID (2)
+
+	chdir "data"
+	df_config "X320 Y240 Z200 vpad"
+	df_reset
+
+	gosub *readygame
+
+	_dotfw_contkey |= 0x3c000
+
+	hspvpad_set 2, -1 // 上
+	hspvpad_set 3, -1 // 下
+
+	hspvpad_set 2, PX_RESTORE@_vpad
+	hspvpad_set 3, PX_RESTORE@_vpad
+
+	_usejspad@HSP3MOD_DOTFW = 0
+
+	//hspvpad_set 5, -1 // 右 〇 Z
+	//hspvpad_set 6, -1 // 上三角 X
+	//hspvpad_set 7, -1 // 下× C
+
+	//df_loadbgmap MYMAP_ID, "test2.tmap"
+	//df_loadbgmap MYMAP_ID, "belt16_16_1.tmap"
+	df_loadbgmap MYMAP_ID, "../../widejump/data/jump64_16px.tmap"
+	mapsx = _dotfw_curmapx			; マップサイズXを取得
+	mapsy = _dotfw_curmapy			; マップサイズYを取得
+	df_getbgmap map, MYMAP_ID		; マップ配列変数を取得
+
+	//df_mapaction MYMAP_ID, 0, 6 ; 重力無し
+	df_mapaction MYMAP_ID, 60, 6 ; 重力とジャンプ(80, 8とか)
+
+	df_bgview MYMAP_ID, 90,90, 10,10, 32,32	; スクロール設定
+
+	// これでマップからのイベントが発火する
+	df_paction *player_mapev,PACTION_MAPITEM	; マップイベント処理
+
+	df_celload bgcel,"tamane16.png"		; キャラクターの画像ファイル
+	es_sizeex 16,16, ,16,16, 0,0		; キャラクターのサイズ指定
+	es_patanim 0, 4, 0,16, 0, bgcel	; キャラクターの登録(0)
+	es_patanim 4, 4, 64,16, 0, bgcel	; キャラクターの登録(4)
+
+	WID_KEI = 4
+	celload "../../widejump/data/kei16.png", WID_KEI
+	es_sizeex 16,16, ,8,12, 4,4
+	frnum = 4
+	es_patanim 16, 4, 0,0, frnun, WID_KEI
+	es_patanim 20, 4, 16*4,0, frnum, WID_KEI
+	es_patanim 24, 4, 0,16, frnum, WID_KEI
+	es_patanim 28, 4, 16*4,16, frnum, WID_KEI
+	es_patanim 32, 4, 0,16*2, frnum, WID_KEI
+	es_patanim 36, 4, 16*4,16*2, frnum, WID_KEI
+	es_patanim 40, 4, 0,16*3, frnum, WID_KEI
+	es_patanim 44, 4, 16*4,16*3, frnum, WID_KEI
+
+	//df_addplayer 200,90,16			; プレイヤーを追加
+	df_addplayer 16 * 22, 16 * 30, 16			; プレイヤーを追加
+	df_bgpoint 1, 16 * 18, 16 * 20
+	//df_pmode 0, 2, 2
+	df_pmode 0, 1,1
+
+// 4: notice , 2: event, 1: hold
+
+	_presec = 0
+	_fpscount = 0
+	_lastfps = 0
+
+	dim hitinfo, 7
+
+*main
+	getreq ts, SYSREQ_TIMER
+	cursec = ts / 1000
+	if cursec == _presec {
+		_fpscount += 1
+	} else {
+		_presec = cursec
+		_lastfps = _fpscount
+		_fpscount = 0
+	}
+	// key は dotfw でセットされるのか
+	if key & PLAYER_KEY_ESC : end		; [ESC]キーで終了
+	
+	df_getplayer
+	mysp = _dotfw_cursp
+	mypx_x = _dotfw_myx
+	mypx_y = _dotfw_myy
+
+//// 上へスイープ
+//// 下へスイープ + 1
+
+	bgno = 1 + 1
+	pxx = mypx_x + 4
+	//pxy = mypx_y + 4 + 12
+	pxy = mypx_y + 4 - 12
+	//es_bghitpos bgno, pxx,pxy, 8,12, 0,-12, 0
+	es_bghitpos bgno, pxx,pxy, 8,12, 0,13,0
+	num = stat
+	repeat num
+		es_getbghit hitinfo, bgno, cnt
+		if hitinfo(0) != ESMAPHIT_EVENT {
+			continue
+		}
+		op = (hitinfo(2) >> 8) & 0xff
+		if op & BIT_OPLADDER@HSP3MOD_DOTFW {
+			_grabladder mysp
+			break
+		}
+	loop
+//// スイープここまで
+	
+
+	//// 更新
+	es_get curchr, mysp, ESI_CHRNO
+	mask = 0x3c00f
+	es_get opt, mysp, ESI_OPTION
+	if opt & MASK_LADDER@HSP3MOD_DOTFW {
+		// ここでスピード0にすると一段下だけになる
+		//es_setp mysp, ESI_SPDY, 0, 0 // 上書き
+
+		opt -= BIT_LADDER@HSP3MOD_DOTFW
+		es_setp mysp, ESI_OPTION, opt, 0
+
+		newchr = 40
+		if newchr != (curchr & 0xfffc) | (key & mask) == 0 {
+			es_chr mysp, newchr
+		}
+	} else {
+		es_setp mysp, ESI_ACCELY, 60, 0
+
+		newchr = 28
+		if _dotfw_mydir == DIR_LEFT {
+			newchr = 24
+		}
+		if newchr != (curchr & 0xfffc) | (key & mask) == 0 | _dotfw_myact == 2 {
+			es_chr mysp, newchr
+		}
+	}
+	
+	lx = 5
+	df_mes strf("moveres, %04X", result), lx, 9, col
+	df_mes strf("moveres, %04X, %d   ", result & ESSPRES_YBLOCK, ycnt), lx, 10, col
+	df_mes strf("moveres, %04X, %d   ", result & ESSPRES_GROUND, gcnt), lx, 11, col
+	df_mes strf("%d", mapevcnt), lx, 12, col
+	df_mes strf("FPS, %d   ", _lastfps), lx, 13, col
+
+	df_update
+	goto *main
+
+#module
+#deffunc _grabladder int spno
+	es_setp spno, ESI_SPDY, 0, 0
+	es_setp spno, ESI_ACCELY, 0, 0
+	es_get opt, spno, ESI_OPTION
+	opt |= BIT_LADDER@HSP3MOD_DOTFW * 2
+	es_setp spno, ESI_OPTION, opt, 0 // 上書き
+	return
+#global
+
+*onmapnotice
+	noticecnt += 1
+	return
+
+*player_mapev
+	mysp = _dotfw_cursp
+	// bit 2
+	mapevcnt += 1
+	;	イベント処理
+	op = _dotfw_curmapattr
+	if op == 0 {
+		; アイテム取得
+		map(mapsx*_dotfw_curmapy+_dotfw_curmapx)=0	; アイテムを消す
+	}
+	if op == 1 {
+		goto *miss
+	}
+	if op & 0x20 { // 数字
+		ballnum = op - 0x20
+		if ballnum == _next {
+			map(mapsx * _dotfw_curmapy + _dotfw_curmapx) = 0 // アイテムを消す
+			_next += 1
+			if _next == 10 {
+				df_mes "GAME CLEAR!", 10, 10, FONT_RED + 2
+			}
+		}
+	}
+
+	if op & 0x10 { // warp
+		es_getpos mysp, x,y, ESSPSET_POS
+		if op == 0x11 { // 上ワープ 
+			y -= 8 * 16
+			es_pos mysp, x,y, ESSPSET_POS
+			es_pos mysp, 0,0, ESSPSET_ADDPOS			
+		}
+		if op == 0x12 { // 右ワープ
+			x += 8 * 16
+			es_pos mysp, x,y, ESSPSET_POS
+			es_pos mysp, 0,0, ESSPSET_ADDPOS
+		}
+	}
+
+
+	return
+
+*mesrest
+	return
+*miss
+	//df_pwipe ; プレイヤーを消去
+	return
+
+
+*readygame
+	_next = 1
+	return
