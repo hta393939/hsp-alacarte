@@ -1,8 +1,12 @@
 #include "dotfw.as"
-#define BGPIC_ID (0)
-#define MYMAP_ID (1)
 
-#define BGFRONT_ID (2)
+	DEBUG = 1
+
+	_skiplb = *include_skip
+#include "../lib/input.hsp"
+#include "../lib/dotfwchar.hsp"
+*include_skip
+
 
 	chdir "data"
 	df_config "X320 Y240 Z200 vpad"
@@ -70,6 +74,9 @@
 	_lastfps = 0
 
 	dim hitinfo, 7
+
+	goto *main
+
 
 *main
 	getreq ts, SYSREQ_TIMER
@@ -210,6 +217,29 @@
 *miss
 	//df_pwipe ; ƒvƒŒƒCƒ„[‚ğÁ‹
 	return
+
+
+// –¢À‘•
+*onmiss
+	return
+*onitem
+	return
+*onbut1
+*onbut2
+*onbut3
+	return
+*onenedest
+	return
+*fire1
+*fire2
+*fire3
+*fire4
+*fire5
+*fire6
+*fire7
+*fire8
+	return
+
 
 
 *readygame
