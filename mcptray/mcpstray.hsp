@@ -9,11 +9,18 @@
 
 #const NULL 0
 
+#const EC_PARSE -32700
+#const EC_INVALIDREQ -32600
+#const EC_METHOD -32601
+#const EC_INVALIDP -32602
+#const EC_INTERNAL -32603
+
 #const BUF_BYTE 1024 * 1024
 
 
 	ids = ""
-	gosub *makeinires
+	//gosub *makeinires
+	gosub *makeerrres
 	dialog _jt
 	end
 	//mci "set CDAudio door open"
@@ -45,9 +52,14 @@
 		await 1
 	loop
 
-	in_s = ""
+	gosub *makeres
+	in_s = _jt
 	gosub *response
+
+// 1‰ñ‚¾‚¯‚¶‚á‚È‚­‚Ä‘±‚­‚ñ‚©‚È...
+	
 	end
+
 
 *parse
 	jsonopen rootp, in_t
@@ -107,13 +119,15 @@
 	jsonopen resp, eobj
 	jsonputs resp, "jsonrpc", "2.0"
 	if strlen(ids) > 0 {
+		jsonputs resp, "id", ids
 	} else {
+		jsonputi resp, "id", idi
 	}
 
 	jsonnewobj erro, resp, "error"
 	jsongetobj erro, "error", resp
 
-	jsonputi erro, "code", -32602
+	jsonputi erro, "code", EC_INTERNAL
 	jsonputs erro, "message", "failure"
 
 	jsonout _jt, resp
