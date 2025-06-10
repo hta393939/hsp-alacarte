@@ -1,0 +1,205 @@
+#include "hsp3cl.as"
+#include "hspinet.as"
+#include "kernel32.as"
+
+#const EC_PARSE -32700
+#const EC_INVALIDREQ -32600
+#const EC_METHOD -32601
+#const EC_INVALIDP -32602
+#const EC_INTERNAL -32603
+
+#const BUF_BYTE 1024 * 1024
+
+#module
+
+#deffunc delnl var text
+	len = strlen(text)
+	offset = 0
+	repeat len
+		u8 = peek(text,cnt)
+		if u8 == 0x0d | u8 == 0x0a | u8 == 0x09 {
+			continue
+		}
+		poke text, offset, u8
+		offset += 1
+	loop
+	poke text, offset, 0x00
+	return
+
+#defcfunc parse var in_t
+	jsonopen@ rootp, in_t
+	if rootp == 0 {
+		result = "Invalid JSON string"
+		mcp_code@ = EC_PARSE
+		goto *parseend
+	}
+	jsongets@ ids, "id", rootp
+	if stat != 0 {
+		mcp_id@ = ids
+	} else {
+		jsongeti@ idi, "id", rootp
+		if stat != 0 {
+			mcp_code@ = EC_
+			result = "id err"
+			goto *parseend
+		}
+		mcp_id@ = idi
+	}
+	jsongets@ s, "method", rootp
+	if stat != 0 {
+		result = "method err"
+		mcp_code@ = EC_
+		goto *parseend
+	}
+	mcp_method@ = s
+	
+	jsongetobj@ paramso, "params", rootp
+	if paramo == 0 {
+		result = "params err"
+		mcp_code@ = EC_
+		goto *parseend
+	}
+
+	result = "OK"
+	mcp_code@ = 0
+*parseend
+	jsonclose@
+	return result
+
+#deffunc makeresbase
+	eobj = "{}"
+	jsonopen@ resp, eobj
+	jsonputs@ resp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 {
+		jsonputs@ resp, "id", mcp_id@
+	} else {
+		jsonputi@ resp, "id", mcp_id@
+	}
+	// ‚»‚Ì‚à‚Ì‚Å‚Í‚È‚­ˆê‚Â‚ª“¾‚ç‚ê‚é
+	jsonnewobj@ resulto, resp, "result"
+	return
+
+#defcfunc makelistres
+	makebaseres
+
+// ’Ç‰Á
+	jsongetobj@ resulto, "result", -1
+
+
+	jsonclose@
+	return ""
+
+#defcfunc makecallres
+	makebaseres
+
+// content ‚Ì’Ç‰Á
+	jsongetobj@ resulto, "result", -1
+
+	jsonnewobj@ cp, resulto, "content"
+
+	jsonnewobj@ a,b,c
+	jsonputs@ c0p, "type", "text"
+	jsonputs@ c0p, "text"
+
+	jsonclose@
+	return ""
+
+#defcfunc makeinires
+	makebaseres
+
+	jsongetobj@ resulto, "result", -1
+
+// 
+	
+
+	jsonout@ mcp_jt@, resp
+	delnl mcp_jt@
+
+	//jsondelobj@ -1
+	jsonclose@
+	return ""
+
+#defcfunc makeerrres int errno, str message
+	eobj = "{}"
+	jsonopen@ resp, eobj
+	jsonputs@ resp, "jsonrpc", "2.0"
+
+	if vartype(mcp_id@) == 2 {
+		jsonputs@ resp, "id", mcp_id@
+	} else {
+		jsonputi@ resp, "id", mcp_id@
+	}
+
+	jsonnewobj@ erro, resp, "error"
+	jsongetobj@ erro, "error", resp
+
+	jsonputi@ erro, "code", errno
+	jsonputs@ erro, "message", message
+
+	jsonout@ mcp_jt@, resp
+	delnl mcp_jt@
+
+	jsondelobj@ erro
+	jsonclose@
+	return ""
+
+#global
+
+
+	mcp_id = "2"
+	//gosub *makeinires
+	mcp_id = 1
+	result = makeerrres(EC_INTERNAL, "Internal error")
+	jt = mcp_jt
+	dialog jt
+	//end
+	//mci "play cdaudio"
+	end
+
+	readbuf = ""
+	repeat
+		input readbuf, BUF_BYTE - 16
+		result = parse(readbuf)
+		if result != "none" {
+			gosub *analyze
+			dialog "" + result
+			break
+		}
+		wait 1
+	loop
+
+
+*analyze
+	if mcp_method == "initialize" {
+		result = makeinires()
+		mes mcp_jt
+		return
+	}
+	if mcp_method == "tools/list" {
+		result = makelistres()
+		mes mcp_jt
+		return
+	}
+	if mcp_method == "tools/call" {
+		if "" != "" {
+			result = makeerrres(EC_INVALIDP, "Invalid name")
+			mes mcp_jt
+			return
+		}
+		
+		result = makecallres()
+		mes mcp_jt
+		return
+	}
+	result = makeerrres(EC_METHOD, "Invalid method")
+	mes mcp_jt
+	return
+
+
+*acttool
+	notebuf = ""
+	notesel notebuf
+	noteadd "hello"
+	noteadd "world"
+	notesave "hello.txt"
+	return
