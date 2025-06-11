@@ -1,6 +1,9 @@
+
 #include "hsp3cl.as"
-#include "hspinet.as"
 #include "kernel32.as"
+
+#include "json.hsp"
+
 
 #const EC_PARSE -32700
 #const EC_INVALIDREQ -32600
@@ -8,23 +11,14 @@
 #const EC_INVALIDP -32602
 #const EC_INTERNAL -32603
 
-#const BUF_BYTE 1024 * 1024
+#const CP_UTF8 65001
+
+#const STD_INPUT_HANDLE -10
+#const STD_OUTPUT_HANDLE -11
+
+#const NULL 0
 
 #module
-
-#deffunc delnl var text
-	len = strlen(text)
-	offset = 0
-	repeat len
-		u8 = peek(text,cnt)
-		if u8 == 0x0d | u8 == 0x0a | u8 == 0x09 {
-			continue
-		}
-		poke text, offset, u8
-		offset += 1
-	loop
-	poke text, offset, 0x00
-	return
 
 #defcfunc parse var in_t
 	jsonopen@ rootp, in_t
@@ -80,7 +74,7 @@
 	return
 
 #defcfunc makelistres
-	makebaseres
+	makeresbase
 
 // ’Ç‰Á
 	jsongetobj@ resulto, "result", -1
@@ -90,22 +84,29 @@
 	return ""
 
 #defcfunc makecallres
-	makebaseres
+	makeresbase
 
 // content ‚Ì’Ç‰Á
 	jsongetobj@ resulto, "result", -1
 
 	jsonnewobj@ cp, resulto, "content"
 
-	jsonnewobj@ a,b,c
-	jsonputs@ c0p, "type", "text"
-	jsonputs@ c0p, "text"
+	//jsongetarrayobj@ a,b,c
+	//jsongetarrayobjbyname@ a,b,c
 
+	jsonnewobj@ c0p, parent, ""
+	jsonputs@ c0p, "type", "text"
+	jsonputs@ c0p, "text", "success"
+
+	jsonout@ mcp_jt@, -1
+	j_delnl mcp_jt@
+
+	//jsondelobj@ -1
 	jsonclose@
 	return ""
 
 #defcfunc makeinires
-	makebaseres
+	makeresbase
 
 	jsongetobj@ resulto, "result", -1
 
@@ -113,7 +114,7 @@
 	
 
 	jsonout@ mcp_jt@, resp
-	delnl mcp_jt@
+	j_delnl mcp_jt@
 
 	//jsondelobj@ -1
 	jsonclose@
@@ -137,7 +138,7 @@
 	jsonputs@ erro, "message", message
 
 	jsonout@ mcp_jt@, resp
-	delnl mcp_jt@
+	j_delnl mcp_jt@
 
 	jsondelobj@ erro
 	jsonclose@
@@ -146,25 +147,44 @@
 #global
 
 
+#const BUFBYTE (1024 * 1024)
+
+	GetStdHandle STD_OUTPUT_HANDLE
+	stdout = stat
+
+	SetConsoleOutputCP CP_UTF8
+
+
+	jsonnewobj rootp
+	j_setd rootp, "foo.bar", 1.23
+	j_setnull rootp, "foo.baz"
+	j_setstr rootp, "foo.text", "abc‚Ò‚ædef"
+	j_setb rootp, "foo.isError", 0
+
+	in_pt = rootp
+	gosub *send
+	
+	dialog jt + "\n"
+
+	jsondelobj rootp
+
+
 	mcp_id = "2"
 	//gosub *makeinires
 	mcp_id = 1
 	result = makeerrres(EC_INTERNAL, "Internal error")
-	jt = mcp_jt
-	dialog jt
-	//end
-	//mci "play cdaudio"
-	end
 
 	readbuf = ""
 	repeat
 		input readbuf, BUF_BYTE - 16
 		result = parse(readbuf)
-		if result != "none" {
-			gosub *analyze
-			dialog "" + result
-			break
+		if result != "OK" {
+			mes mcp_jt
+			wait 1
+			continue
 		}
+
+		gosub *analyze
 		wait 1
 	loop
 
@@ -173,6 +193,10 @@
 	if mcp_method == "initialize" {
 		result = makeinires()
 		mes mcp_jt
+		return
+	}
+	if mcp_method == "notification/initialized" {
+		// –³Ž‹‚µ‚Ä‚æ‚¢
 		return
 	}
 	if mcp_method == "tools/list" {
@@ -186,15 +210,27 @@
 			mes mcp_jt
 			return
 		}
-		
+
 		result = makecallres()
 		mes mcp_jt
+
+		gosub *acttool
 		return
 	}
 	result = makeerrres(EC_METHOD, "Invalid method")
 	mes mcp_jt
 	return
 
+
+*send
+	jsonout jt, in_pt
+	j_delnl jt
+	tailnl = jt + "\n"
+	nkfcnv u8b, tailnl, "wS"
+	len = strlen(u8b)
+	//dialog "" + u8b
+	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
+	return
 
 *acttool
 	notebuf = ""

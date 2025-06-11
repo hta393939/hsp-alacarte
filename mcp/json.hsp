@@ -1,0 +1,67 @@
+#include "hspinet.as"
+
+#module json
+
+#const T_FALSE 0
+#const T_TRUE 1
+#const T_NULL 2
+#const T_NUMBER 3
+#const T_STRING 4
+#const T_ARRAY 5
+#const T_OBJECT 6
+
+#deffunc j_delnl var text
+	len = strlen(text)
+	offset = 0
+	repeat len
+		u8 = peek(text,cnt)
+		if u8 == 0x0d | u8 == 0x0a | u8 == 0x09 {
+			continue
+		}
+		poke text, offset, u8
+		offset += 1
+	loop
+	poke text, offset, 0x00
+	return
+
+#defcfunc j_getj int pt, str paths
+// _name Ç…èëÇ´èoÇµÇ≥ÇÍÇÈ
+	s = paths
+	split s, ".", ss
+	num = stat
+	parent = pt
+	repeat num - 1
+		name = ss(cnt)
+		jsongetobj@ ch, name, parent
+		if ch == 0 {
+			jsonnewobj@ _, parent, name
+			jsongetobj@ ch, name, parent
+		}
+		parent = ch
+	loop
+	_name = ss(num - 1)
+	return parent
+
+#deffunc j_setstr int pt, str paths, str text
+	t = j_getj(pt, paths)
+	jsonputs@ t, _name, text
+	return
+
+#deffunc j_setd int pt, str paths, double val
+	t = j_getj(pt, paths)
+	jsonputd@ t, _name, val
+	return
+
+#deffunc j_setb int pt, str paths, int val
+	t = j_getj(pt, paths)
+	jsonputi@ t, _name, val, 1 // bool
+	return
+
+#deffunc j_setnull int pt, str paths
+	t = j_getj(pt, paths)
+	jsonnewobj@ p, t, _name
+	jsongetobj@ ch, _name, t
+	jsonsetprm@ ch, T_NULL, 3 // type
+	return
+
+#global
