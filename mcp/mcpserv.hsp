@@ -4,6 +4,8 @@
 
 #include "json.hsp"
 
+// protocol
+// https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle
 
 #const EC_PARSE -32700
 #const EC_INVALIDREQ -32600
@@ -156,16 +158,19 @@
 
 
 	jsonnewobj rootp
-	j_setd rootp, "foo.bar", 1.23
-	j_setnull rootp, "foo.baz"
-	j_setstr rootp, "foo.text", "abcÇ“ÇÊdef"
-	j_setb rootp, "foo.isError", 0
-
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setb rootp, "result.isError", 0
+	j_setstr rootp, "result.content.0.type", "text"
+	j_setstr rootp, "result.content.0.text", "Ç®ÇÕÇΩÇ‹Å`"
+	j_toarr rootp, "result.content"
 	in_pt = rootp
 	gosub *send
-	
 	dialog jt + "\n"
-
 	jsondelobj rootp
 
 
@@ -232,10 +237,85 @@
 	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
 	return
 
+
+*res_err
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setd rootp, "error.code", EC_INTERNAL
+	j_setstr rootp, "error.message", "Error"
+	in_pt = rootp
+	gosub *send
+	//dialog jt + "\n"
+	jsondelobj rootp
+	return
+
+*res_ini
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setstr rootp, "result.protocolVersion", "2025-03-26"
+	j_setb rootp, "result.capabilities.tools.listChanged", 1
+	j_setstr rootp, "result.serverInfo.name", "HSPServer"
+	j_setstr rootp, "result.serverInfo.version", "0.1.0"
+	//j_setstr rootp, "result.instructions", ""
+	in_pt = rootp
+	gosub *send
+	//dialog jt + "\n"
+	jsondelobj rootp
+	return
+
+*res_toollist
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setstr rootp, "result.tools.0.name", "get_greeting"
+	j_setstr rootp, "result.tools.0.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃà•éAÇéÊìæÇ∑ÇÈ"
+	j_setstr rootp, "result.tools.0.inputSchema", ""
+	in_pt = rootp
+	gosub *send
+	//dialog jt + "\n"
+	jsondelobj rootp
+	return
+
+*res_call
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setb rootp, "result.isError", 0
+	j_setstr rootp, "result.content.0.type", "text"
+	j_setstr rootp, "result.content.0.text", "Ç®ÇÕÇΩÇ‹Å`"
+	j_toarr rootp, "result.content"
+	in_pt = rootp
+	gosub *send
+	//dialog jt + "\n"
+	jsondelobj rootp
+	return
+
 *acttool
+	// é¿èàóù
 	notebuf = ""
 	notesel notebuf
 	noteadd "hello"
 	noteadd "world"
 	notesave "hello.txt"
 	return
+
+
+// https://modelcontextprotocol.io/specification/2025-03-26/server/tools

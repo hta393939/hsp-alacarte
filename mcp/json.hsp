@@ -64,4 +64,13 @@
 	jsonsetprm@ ch, T_NULL, 3 // type
 	return
 
+#deffunc j_toarr int pt, str paths
+	t = j_getj(pt, paths)
+	jsongetobj@ ch, _name, t
+	if ch == 0 {
+		return
+	}
+	jsonsetprm@ ch, T_ARRAY, 3 // type
+	return
+
 #global
