@@ -1,4 +1,3 @@
-
 #include "hsp3cl.as"
 #include "kernel32.as"
 
@@ -61,91 +60,6 @@
 *parseend
 	jsonclose@
 	return result
-
-#deffunc makeresbase
-	eobj = "{}"
-	jsonopen@ resp, eobj
-	jsonputs@ resp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 {
-		jsonputs@ resp, "id", mcp_id@
-	} else {
-		jsonputi@ resp, "id", mcp_id@
-	}
-	// ÇªÇÃÇ‡ÇÃÇ≈ÇÕÇ»Ç≠àÍÇ¬Ç™ìæÇÁÇÍÇÈ
-	jsonnewobj@ resulto, resp, "result"
-	return
-
-#defcfunc makelistres
-	makeresbase
-
-// í«â¡
-	jsongetobj@ resulto, "result", -1
-
-
-	jsonclose@
-	return ""
-
-#defcfunc makecallres
-	makeresbase
-
-// content ÇÃí«â¡
-	jsongetobj@ resulto, "result", -1
-
-	jsonnewobj@ cp, resulto, "content"
-
-	//jsongetarrayobj@ a,b,c
-	//jsongetarrayobjbyname@ a,b,c
-
-	jsonnewobj@ c0p, parent, ""
-	jsonputs@ c0p, "type", "text"
-	jsonputs@ c0p, "text", "success"
-
-	jsonout@ mcp_jt@, -1
-	j_delnl mcp_jt@
-
-	//jsondelobj@ -1
-	jsonclose@
-	return ""
-
-#defcfunc makeinires
-	makeresbase
-
-	jsongetobj@ resulto, "result", -1
-
-// 
-	
-
-	jsonout@ mcp_jt@, resp
-	j_delnl mcp_jt@
-
-	//jsondelobj@ -1
-	jsonclose@
-	return ""
-
-#defcfunc makeerrres int errno, str message
-	eobj = "{}"
-	jsonopen@ resp, eobj
-	jsonputs@ resp, "jsonrpc", "2.0"
-
-	if vartype(mcp_id@) == 2 {
-		jsonputs@ resp, "id", mcp_id@
-	} else {
-		jsonputi@ resp, "id", mcp_id@
-	}
-
-	jsonnewobj@ erro, resp, "error"
-	jsongetobj@ erro, "error", resp
-
-	jsonputi@ erro, "code", errno
-	jsonputs@ erro, "message", message
-
-	jsonout@ mcp_jt@, resp
-	j_delnl mcp_jt@
-
-	jsondelobj@ erro
-	jsonclose@
-	return ""
-
 #global
 
 
@@ -174,17 +88,14 @@
 	jsondelobj rootp
 
 
-	mcp_id = "2"
-	//gosub *makeinires
-	mcp_id = 1
-	result = makeerrres(EC_INTERNAL, "Internal error")
-
 	readbuf = ""
 	repeat
-		input readbuf, BUF_BYTE - 16
+		input readbuf, BUF_BYTE - 16, 1
 		result = parse(readbuf)
 		if result != "OK" {
-			mes mcp_jt
+			mcp_code = EC_INTERNAL
+			mcp_message = result
+			gosub *res_err
 			wait 1
 			continue
 		}
@@ -196,34 +107,44 @@
 
 *analyze
 	if mcp_method == "initialize" {
-		result = makeinires()
-		mes mcp_jt
+		gosub *res_ini
 		return
 	}
 	if mcp_method == "notification/initialized" {
-		// ñ≥éãÇµÇƒÇÊÇ¢
-		return
+		return // ñ≥éãÇ∑ÇÈ
+	}
+	if mcp_method == "cancelled" {
+		return // ñ≥éãÇ∑ÇÈ
 	}
 	if mcp_method == "tools/list" {
-		result = makelistres()
-		mes mcp_jt
+		gosub *res_list
 		return
 	}
 	if mcp_method == "tools/call" {
-		if "" != "" {
-			result = makeerrres(EC_INVALIDP, "Invalid name")
+		if mcp_params_name != "get_greeting" {
+			result = makeerrres(EC_METHOD, "Invalid name")
 			mes mcp_jt
 			return
 		}
 
-		result = makecallres()
-		mes mcp_jt
-
-		gosub *acttool
+		hours = 0
+		mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+		if 5 <= hours & hours <= 10 {
+			mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+		}
+		if 11 <= hours & hours <= 18 {
+			mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+		}
+		if 19 <= hours & hours <= 10 {
+			mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+		}
+		gosub *res_call
+		//gosub *acttool
 		return
 	}
-	result = makeerrres(EC_METHOD, "Invalid method")
-	mes mcp_jt
+	mcp_code = EC_METHOD
+	mcp_message = "Invalid method"
+	gosub *res_err
 	return
 
 
@@ -246,8 +167,8 @@
 	} else {
 		j_setd rootp, "id", mcp_id
 	}
-	j_setd rootp, "error.code", EC_INTERNAL
-	j_setstr rootp, "error.message", "Error"
+	j_setd rootp, "error.code", mcp_code
+	j_setstr rootp, "error.message", mcp_message
 	in_pt = rootp
 	gosub *send
 	//dialog jt + "\n"
@@ -264,7 +185,7 @@
 	}
 	j_setstr rootp, "result.protocolVersion", "2025-03-26"
 	j_setb rootp, "result.capabilities.tools.listChanged", 1
-	j_setstr rootp, "result.serverInfo.name", "HSPServer"
+	j_setstr rootp, "result.serverInfo.name", "hsp-stdio-server"
 	j_setstr rootp, "result.serverInfo.version", "0.1.0"
 	//j_setstr rootp, "result.instructions", ""
 	in_pt = rootp
@@ -273,7 +194,7 @@
 	jsondelobj rootp
 	return
 
-*res_toollist
+*res_list
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
 	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
@@ -282,8 +203,15 @@
 		j_setd rootp, "id", mcp_id
 	}
 	j_setstr rootp, "result.tools.0.name", "get_greeting"
-	j_setstr rootp, "result.tools.0.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃà•éAÇéÊìæÇ∑ÇÈ"
-	j_setstr rootp, "result.tools.0.inputSchema", ""
+	j_setstr rootp, "result.tools.0.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃéûçèÇ≤Ç∆ÇÃà•éAÇéÊìæÇ∑ÇÈ"
+	j_setstr rootp, "result.tools.0.inputSchema.type", "object"
+
+	j_setstr rootp, "result.tools.0.inputSchema.properties.hours.type", "number"
+	j_setstr rootp, "result.tools.0.inputSchema.required.0", "number"
+
+	j_toarr rootp, "result.tools.0.inputSchema.required"
+	j_toarr rootp, "result.tools"
+
 	in_pt = rootp
 	gosub *send
 	//dialog jt + "\n"
@@ -300,7 +228,7 @@
 	}
 	j_setb rootp, "result.isError", 0
 	j_setstr rootp, "result.content.0.type", "text"
-	j_setstr rootp, "result.content.0.text", "Ç®ÇÕÇΩÇ‹Å`"
+	j_setstr rootp, "result.content.0.text", mcp_text
 	j_toarr rootp, "result.content"
 	in_pt = rootp
 	gosub *send
