@@ -24,9 +24,9 @@
 #defcfunc parse var in_t
 	jsonopen@ rootp, in_t
 	if rootp == 0 {
-		result = "Invalid JSON string"
+		result = "Parse error"
 		mcp_code@ = EC_PARSE
-		goto *parseend
+		return result
 	}
 	jsongets@ ids, "id", rootp
 	if stat != 0 {
@@ -35,30 +35,28 @@
 		jsongeti@ idi, "id", rootp
 		if stat != 0 {
 			mcp_code@ = EC_
-			result = "id err"
-			goto *parseend
+			result = "id error"
+			return result
 		}
 		mcp_id@ = idi
 	}
 	jsongets@ s, "method", rootp
 	if stat != 0 {
-		result = "method err"
+		result = "Method error"
 		mcp_code@ = EC_
-		goto *parseend
+		return result
 	}
 	mcp_method@ = s
 	
 	jsongetobj@ paramso, "params", rootp
 	if paramo == 0 {
-		result = "params err"
+		result = "Params error"
 		mcp_code@ = EC_
-		goto *parseend
+		return result
 	}
 
 	result = "OK"
 	mcp_code@ = 0
-*parseend
-	jsonclose@
 	return result
 #global
 
@@ -114,7 +112,7 @@
 		return // –³Ž‹‚·‚é
 	}
 	if mcp_method == "cancelled" {
-		return // –³Ž‹‚·‚é
+		return
 	}
 	if mcp_method == "tools/list" {
 		gosub *res_list
