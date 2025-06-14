@@ -3,25 +3,56 @@
 
 #include "json.hsp"
 
-// protocol
-// https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle
-
 #const EC_PARSE -32700
 #const EC_INVALIDREQ -32600
 #const EC_METHOD -32601
-#const EC_INVALIDP -32602
+#const EC_INVALIDPARAM -32602
 #const EC_INTERNAL -32603
 
 #const CP_UTF8 65001
-
 #const STD_INPUT_HANDLE -10
 #const STD_OUTPUT_HANDLE -11
-
 #const NULL 0
 
-#module
+#const BUF_BYTE (1024 * 1024)
 
-#defcfunc parse var in_t
+#const DEBUG 0
+
+	GetStdHandle STD_OUTPUT_HANDLE
+	stdout = stat
+	SetConsoleOutputCP CP_UTF8
+
+	if DEBUG >= 3 {
+		gosub *res_ini
+		gosub *res_list
+		mcp_text = "Ç“ÇÊ"
+		gosub *res_call
+		mcp_code = EC_INTERNAL
+		mcp_message = "ì‡ïîÉGÉâÅ["
+		gosub *res_err
+		end
+	}
+
+	readbuf = ""
+	repeat
+		input readbuf, BUF_BYTE - 16, 1
+		in_t = readbuf
+		gosub *parse
+		result = refstr
+		if result != "OK" {
+			mcp_message = result
+			gosub *res_err
+			wait 1
+			continue
+		}
+
+		gosub *analyze
+		wait 1
+	loop
+	end
+
+
+*parse
 	jsonopen@ rootp, in_t
 	if rootp == 0 {
 		result = "Parse error"
@@ -51,32 +82,6 @@
 	result = "OK"
 	mcp_code@ = 0
 	return result
-#global
-
-
-#const DEBUG 0
-#const BUF_BYTE (1024 * 1024)
-
-	GetStdHandle STD_OUTPUT_HANDLE
-	stdout = stat
-	SetConsoleOutputCP CP_UTF8
-
-	readbuf = ""
-	repeat
-		input readbuf, BUF_BYTE - 16, 1
-		result = parse(readbuf)
-		if result != "OK" {
-			mcp_code = EC_INTERNAL
-			mcp_message = result
-			gosub *res_err
-			wait 1
-			continue
-		}
-
-		gosub *analyze
-		wait 1
-	loop
-
 
 *analyze
 	if mcp_method == "initialize" {
@@ -94,13 +99,34 @@
 		return
 	}
 	if mcp_method == "tools/call" {
+		jsongetobj namesp, "params", -1
+		mcp_params_name = ""
+		if namesp {
+			jsongets mcp_params_name, "name", namesp
+		}
+		
 		if mcp_params_name != "get_greeting" {
-			result = makeerrres(EC_METHOD, "Invalid name")
-			mes mcp_jt
+			mcp_code = EC_METHOD
+			mcp_message = "Invalid name"
+			gosub *res_err
 			return
 		}
 
-		hours = 0
+		hours = -999
+		p = j_getj(-1, "params.arguments.hours")
+		if p {
+			jsongetd hours, "hours", p
+			if stat == 1 {
+				p = 0
+			}
+		}
+		if p == 0 {
+			mcp_code = EC_INVALIDPARAM
+			mcp_message = "Invalid param"
+			gosub *res_err
+			return
+		}
+
 		mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
 		if 5 <= hours & hours <= 10 {
 			mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
@@ -112,7 +138,6 @@
 			mcp_text = "ÇŸÇµÇΩÇ‹Å`"
 		}
 		gosub *res_call
-		//gosub *acttool
 		return
 	}
 	mcp_code = EC_METHOD
@@ -162,7 +187,6 @@
 	j_setb rootp, "result.capabilities.tools.listChanged", 1
 	j_setstr rootp, "result.serverInfo.name", "tamane-server"
 	j_setstr rootp, "result.serverInfo.version", "0.1.0"
-	//j_setstr rootp, "result.instructions", ""
 	in_pt = rootp
 	gosub *send
 	if DEBUG >= 1 {
@@ -184,16 +208,18 @@
 
 	isp = j_readyj(rootp, "result.tools.0.inputSchema._")
 	j_setstr isp, "type", "object"
-
-	j_setstr rootp, "properties.hours.type", "number"
-	j_setstr rootp, "required.0", "number"
+	j_setstr isp, "properties.hours.type", "number"
+	j_setstr isp, "properties.hours.description", "éûä‘ÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "required.0", "hours"
 
 	j_toarr rootp, "result.tools.0.inputSchema.required"
 	j_toarr rootp, "result.tools"
 
 	in_pt = rootp
 	gosub *send
-	//dialog jt + "\n"
+	if DEBUG >= 1 {
+		dialog jt + "\n"
+	}
 	jsondelobj rootp
 	return
 
@@ -216,15 +242,3 @@
 	}
 	jsondelobj rootp
 	return
-
-*acttool
-	// é¿èàóù
-	notebuf = ""
-	notesel notebuf
-	noteadd "hello"
-	noteadd "world"
-	notesave "hello.txt"
-	return
-
-
-// https://modelcontextprotocol.io/specification/2025-03-26/server/tools
