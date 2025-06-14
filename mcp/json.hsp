@@ -10,6 +10,7 @@
 #const T_ARRAY 5
 #const T_OBJECT 6
 
+// ‰üs‚Ìœ‹
 #deffunc j_delnl var text
 	len = strlen(text)
 	offset = 0
@@ -61,8 +62,10 @@
 
 #deffunc j_setnull int pt, str paths
 	t = j_readyj(pt, paths)
-	jsonnewobj@ p, t, _name
-	jsongetobj@ ch, _name, t
+	jsonnewobj@ ch, t, _name
+	if ch == t {
+		jsongetobj@ ch, _name, t
+	}
 	jsonsetprm@ ch, T_NULL, 3 // type
 	return
 

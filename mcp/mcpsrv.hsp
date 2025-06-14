@@ -14,28 +14,15 @@
 #const STD_OUTPUT_HANDLE -11
 #const NULL 0
 
-#const BUF_BYTE (1024 * 1024)
-
 #const DEBUG 0
 
 	GetStdHandle STD_OUTPUT_HANDLE
 	stdout = stat
 	SetConsoleOutputCP CP_UTF8
 
-	if DEBUG >= 3 {
-		gosub *res_ini
-		gosub *res_list
-		mcp_text = "Ç“ÇÊ"
-		gosub *res_call
-		mcp_code = EC_INTERNAL
-		mcp_message = "ì‡ïîÉGÉâÅ["
-		gosub *res_err
-		end
-	}
-
 	readbuf = ""
 	repeat
-		input readbuf, BUF_BYTE - 16, 1
+		input readbuf, 1024 * 1024 - 16, 1
 		in_t = readbuf
 		gosub *parse
 		result = refstr
@@ -53,34 +40,43 @@
 
 
 *parse
-	jsonopen@ rootp, in_t
+	jsonopen rootp, in_t
 	if rootp == 0 {
 		result = "Parse error"
-		mcp_code@ = EC_PARSE
+		mcp_code = EC_PARSE
 		return result
 	}
-	jsongetd@ idn, "id", rootp
-	if stat == 1 { // ë∂ç›ÇµÇ»Ç¢
-		jsongets@ ids, "id", rootp
-		if stat == 1 {
-			mcp_code@ = EC_INVALIDPARAM
-			result = "Id error"
-			return result
+
+	jsongetobj idp, "id", rootp
+	mcp_code = EC_PARSE
+	if idp {
+		jsonnext jtype, idp, 3 // type
+		if jtype == T_NUMBER@json {
+			jsongetd idn, "id", rootp
+			mcp_id = idn
+			mcp_code = 0
+		} else {
+			if jtype == T_STRING@json {
+				jsongets ids, "id", rootp
+				mcp_id = ids
+				mcp_code = 0
+			}
 		}
-		mcp_id@ = ids
-	} else {
-		mcp_id@ = idn
 	}
-	jsongets@ s, "method", rootp
-	if stat != 0 {
+	if mcp_code != 0 {
+		return "Id error"
+	}
+
+	jsongets s, "method", rootp
+	if stat == 1 {
 		result = "Method error"
-		mcp_code@ = EC_METHOD
+		mcp_code = EC_METHOD
 		return result
 	}
-	mcp_method@ = s
+	mcp_method = s
 
 	result = "OK"
-	mcp_code@ = 0
+	mcp_code = 0
 	return result
 
 *analyze
@@ -90,9 +86,6 @@
 	}
 	if mcp_method == "notification/initialized" {
 		return // ñ≥éãÇ∑ÇÈ
-	}
-	if mcp_method == "cancelled" {
-		return
 	}
 	if mcp_method == "tools/list" {
 		gosub *res_list
@@ -107,12 +100,12 @@
 		
 		if mcp_params_name != "get_greeting" {
 			mcp_code = EC_METHOD
-			mcp_message = "Invalid name"
+			mcp_message = "Invalid params name"
 			gosub *res_err
 			return
 		}
 
-		hours = -999
+		hours = -999.0
 		p = j_getj(-1, "params.arguments.hours")
 		if p {
 			jsongetd hours, "hours", p
@@ -128,13 +121,13 @@
 		}
 
 		mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
-		if 5 <= hours & hours <= 10 {
+		if 5.0 <= hours & hours < 11.0 {
 			mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
 		}
-		if 11 <= hours & hours <= 18 {
+		if 11.0 <= hours & hours < 18.0 {
 			mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
 		}
-		if 19 <= hours & hours <= 10 {
+		if 18.0 <= hours & hours < 11.0 {
 			mcp_text = "ÇŸÇµÇΩÇ‹Å`"
 		}
 		gosub *res_call
@@ -152,7 +145,6 @@
 	tailnl = jt + "\n"
 	nkfcnv u8b, tailnl, "wS"
 	len = strlen(u8b)
-	//dialog "" + u8b
 	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
 	return
 
@@ -160,16 +152,20 @@
 *res_err
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
-		j_setstr rootp, "id", mcp_id
+	if mcp_code == EC_PARSE {
+		j_setnull rootp, "id"
 	} else {
-		j_setd rootp, "id", mcp_id
+		if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+			j_setstr rootp, "id", mcp_id
+		} else {
+			j_setd rootp, "id", mcp_id
+		}
 	}
 	j_setd rootp, "error.code", mcp_code
 	j_setstr rootp, "error.message", mcp_message
 	in_pt = rootp
 	gosub *send
-	if DEBUG >= 1 {
+	if DEBUG & 1 {
 		dialog jt + "\n"
 	}
 	jsondelobj rootp
@@ -185,11 +181,11 @@
 	}
 	j_setstr rootp, "result.protocolVersion", "2025-03-26"
 	j_setb rootp, "result.capabilities.tools.listChanged", 1
-	j_setstr rootp, "result.serverInfo.name", "tamane-server"
+	j_setstr rootp, "result.serverInfo.name", "hsp-tamane-server"
 	j_setstr rootp, "result.serverInfo.version", "0.1.0"
 	in_pt = rootp
 	gosub *send
-	if DEBUG >= 1 {
+	if DEBUG & 1 {
 		dialog jt + "\n"
 	}
 	jsondelobj rootp
@@ -209,7 +205,7 @@
 	isp = j_readyj(rootp, "result.tools.0.inputSchema._")
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
-	j_setstr isp, "properties.hours.description", "éûä‘ÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "properties.hours.description", "éûçèÇÃéûÇéwíËÇ∑ÇÈ"
 	j_setstr isp, "required.0", "hours"
 
 	j_toarr rootp, "result.tools.0.inputSchema.required"
@@ -217,7 +213,7 @@
 
 	in_pt = rootp
 	gosub *send
-	if DEBUG >= 1 {
+	if DEBUG & 1 {
 		dialog jt + "\n"
 	}
 	jsondelobj rootp
@@ -237,7 +233,7 @@
 	j_toarr rootp, "result.content"
 	in_pt = rootp
 	gosub *send
-	if DEBUG >= 1 {
+	if DEBUG & 1 {
 		dialog jt + "\n"
 	}
 	jsondelobj rootp
