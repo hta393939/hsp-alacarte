@@ -105,8 +105,8 @@
 		code = codes(cnt)
 		if code >= 0x10000 {
 			code -= 0x10000
-			fw = (code >> 10) & 0x3ff
-			bw =  code & 0x3ff
+			fw = 0xd8 | ((code >> 10) & 0x3ff)
+			bw = 0xdc |  (code & 0x3ff)
 			s += strf("%cu%04x%cu%04x", CODE_ESC, fw, CODE_ESC, bw)
 			continue
 		}
@@ -122,8 +122,11 @@
 			s += strf("%ct", CODE_ESC)
 			continue
 		}
+		if code == '"' {
+			s += strf("%c%c", CODE_ESC, '"')
+		}
 		if code == CODE_ESC {
-			s += strf("%c%C", CODE_ESC, CODE_ESC)
+			s += strf("%c%c", CODE_ESC, CODE_ESC)
 			continue
 		}
 		if 0x20 <= code & code <= 0x7e {
