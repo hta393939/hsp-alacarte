@@ -1,0 +1,137 @@
+#include "hspinet.as"
+
+#module json
+
+#const T_FALSE 0
+#const T_TRUE 1
+#const T_NULL 2
+#const T_NUMBER 3
+#const T_STRING 4
+#const T_ARRAY 5
+#const T_OBJECT 6
+
+// 改行の除去
+#deffunc j_delnl var text
+	len = strlen(text)
+	offset = 0
+	repeat len
+		u8 = peek(text,cnt)
+		if u8 == 0x0d | u8 == 0x0a | u8 == 0x09 {
+			continue
+		}
+		poke text, offset, u8
+		offset += 1
+	loop
+	poke text, offset, 0x00
+	return
+
+// 一段上を返す。無かったら作る。
+#defcfunc j_readyj int pt, str paths
+	s = paths
+	split s, ".", ss
+	num = stat
+	parent = pt
+	repeat num - 1
+		name = ss(cnt)
+		jsongetobj@ ch, name, parent
+		if ch == 0 {
+			jsonnewobj@ ch, parent, name
+			if ch == parent {
+				jsongetobj@ ch, name, parent
+			}
+		}
+		parent = ch
+	loop
+	_name = ss(num - 1)
+	return parent
+
+#deffunc j_setstr int pt, str paths, str text
+	t = j_readyj(pt, paths)
+	jsonputs@ t, _name, text
+	return
+
+#deffunc j_setd int pt, str paths, double val
+	t = j_readyj(pt, paths)
+	jsonputd@ t, _name, val
+	return
+
+#deffunc j_setb int pt, str paths, int val
+	t = j_readyj(pt, paths)
+	jsonputi@ t, _name, val, 1 // bool
+	return
+
+#deffunc j_setnull int pt, str paths
+	t = j_readyj(pt, paths)
+	jsonnewobj@ ch, t, _name
+	if ch == t {
+		jsongetobj@ ch, _name, t
+	}
+	jsonsetprm@ ch, T_NULL, 3 // type
+	return
+
+#deffunc j_toarr int pt, str paths
+	t = j_readyj(pt, paths)
+	jsongetobj@ ch, _name, t
+	if ch == 0 {
+		return
+	}
+	jsonsetprm@ ch, T_ARRAY, 3 // type
+	return
+
+
+// 一段上を返す。無かったら 0 を返す。
+#defcfunc j_getj int pt, str paths
+	s = paths
+	split s, ".", ss
+	num = stat
+	parent = pt
+	repeat num - 1
+		name = ss(cnt)
+		jsongetobj@ ch, name, parent
+		if ch == 0 {
+			parent = 0
+			break
+		}
+		parent = ch
+	loop
+	_name = ss(num - 1)
+	return parent
+
+#defcfunc j_us array codes
+	CODE_ESC = 0x5c
+	coden = length(codes)
+	s = ""
+	repeat coden
+		code = codes(cnt)
+		if code >= 0x10000 {
+			code -= 0x10000
+			fw = (code >> 10) & 0x3ff
+			bw =  code & 0x3ff
+			s += strf("%cu%04x%cu%04x", CODE_ESC, fw, CODE_ESC, bw)
+			continue
+		}
+		if code == 0x0d {
+			s += strf("%cr", CODE_ESC)
+			continue
+		}
+		if code == 0x0a {
+			s += strf("%cn", CODE_ESC)
+			continue
+		}
+		if code == 0x09 {
+			s += strf("%ct", CODE_ESC)
+			continue
+		}
+		if code == CODE_ESC {
+			s += strf("%c%C", CODE_ESC, CODE_ESC)
+			continue
+		}
+		if 0x20 <= code & code <= 0x7e {
+			s += strf("%c", code)
+			continue
+		}
+		s += strf("%cu%04x", CODE_ESC, code)
+	loop
+	return s
+
+#global
