@@ -105,8 +105,8 @@
 		code = codes(cnt)
 		if code >= 0x10000 {
 			code -= 0x10000
-			fw = 0xd8 | ((code >> 10) & 0x3ff)
-			bw = 0xdc |  (code & 0x3ff)
+			fw = 0xd800 | ((code >> 10) & 0x3ff)
+			bw = 0xdc00 |  (code & 0x3ff)
 			s += strf("%cu%04x%cu%04x", CODE_ESC, fw, CODE_ESC, bw)
 			continue
 		}
