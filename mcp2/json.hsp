@@ -97,11 +97,10 @@
 	_name = ss(num - 1)
 	return parent
 
-#defcfunc j_us array codes
+#defcfunc j_us array codes, int in_num
 	CODE_ESC = 0x5c
-	coden = length(codes)
 	s = ""
-	repeat coden
+	repeat in_num
 		code = codes(cnt)
 		if code >= 0x10000 {
 			code -= 0x10000

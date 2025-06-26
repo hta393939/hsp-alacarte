@@ -1,0 +1,298 @@
+#include "hsp3cl.as"
+#include "kernel32.as"
+
+#include "json.hsp"
+
+#const EC_PARSE -32700
+#const EC_INVALIDREQ -32600
+#const EC_METHOD -32601
+#const EC_INVALIDPARAM -32602
+#const EC_INTERNAL -32603
+
+#const CP_UTF8 65001
+#const STD_INPUT_HANDLE -10
+#const STD_OUTPUT_HANDLE -11
+#const NULL 0
+
+#const DEBUG 0
+
+	GetStdHandle STD_OUTPUT_HANDLE
+	stdout = stat
+	SetConsoleOutputCP CP_UTF8
+
+	readbuf = ""
+	repeat
+		input readbuf, 1024 * 1024 - 16, 1
+		in_t = readbuf
+		gosub *parse
+		result = refstr
+		if result != "OK" {
+			mcp_message = result
+			gosub *res_err
+			wait 1
+			continue
+		}
+
+		gosub *analyze
+		wait 1
+	loop
+	end
+
+
+*parse
+	jsonopen rootp, in_t
+	if rootp == 0 {
+		result = "Parse error"
+		mcp_code = EC_PARSE
+		return result
+	}
+
+	jsongetobj idp, "id", rootp
+	mcp_code = EC_PARSE
+	if idp {
+		jsonnext jtype, idp, 3 // type
+		if jtype == T_NUMBER@json {
+			jsongetd idn, "id", rootp
+			mcp_id = idn
+			mcp_code = 0
+		} else {
+			if jtype == T_STRING@json {
+				jsongets ids, "id", rootp
+				mcp_id = ids
+				mcp_code = 0
+			}
+		}
+	}
+	if mcp_code != 0 {
+		return "Id error"
+	}
+
+	jsongets s, "method", rootp
+	if stat == 1 {
+		result = "Method error"
+		mcp_code = EC_METHOD
+		return result
+	}
+	mcp_method = s
+
+	result = "OK"
+	mcp_code = 0
+	return result
+
+*analyze
+	if mcp_method == "initialize" {
+		gosub *res_ini
+		return
+	}
+	if mcp_method == "notification/initialized" {
+		return // ñ≥éãÇ∑ÇÈ
+	}
+	if mcp_method == "tools/list" {
+		gosub *res_list
+		return
+	}
+	if mcp_method == "tools/call" {
+		jsongetobj namesp, "params", -1
+		mcp_params_name = ""
+		if namesp {
+			jsongets mcp_params_name, "name", namesp
+		}
+		
+		if mcp_params_name != "get_greeting" {
+			mcp_code = EC_METHOD
+			mcp_message = "Invalid params name"
+			gosub *res_err
+			return
+		}
+
+		hours = -999.0
+		p = j_getj(-1, "params.arguments.hours")
+		if p {
+			jsongetd hours, "hours", p
+			if stat == 1 {
+				p = 0
+			}
+		}
+		if p == 0 {
+			mcp_code = EC_INVALIDPARAM
+			mcp_message = "Invalid param"
+			gosub *res_err
+			return
+		}
+
+		mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+		if 5.0 <= hours & hours < 11.0 {
+			mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+		}
+		if 11.0 <= hours & hours < 18.0 {
+			mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+		}
+		if 18.0 <= hours & hours < 11.0 {
+			mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+		}
+		gosub *res_call
+		return
+	}
+	mcp_code = EC_METHOD
+	mcp_message = "Invalid method"
+	gosub *res_err
+	return
+
+
+*send
+	jsonout jt, in_pt
+	j_delnl jt
+	tailnl = jt + "\n"
+	nkfcnv u8b, tailnl, "wS"
+	len = strlen(u8b)
+	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
+	return
+
+
+*res_err
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if mcp_code == EC_PARSE {
+		j_setnull rootp, "id"
+	} else {
+		if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+			j_setstr rootp, "id", mcp_id
+		} else {
+			j_setd rootp, "id", mcp_id
+		}
+	}
+	j_setd rootp, "error.code", mcp_code
+	j_setstr rootp, "error.message", mcp_message
+	in_pt = rootp
+	gosub *send
+	if DEBUG & 1 {
+		dialog jt + "\n"
+	}
+	jsondelobj rootp
+	return
+
+*res_ini
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setstr rootp, "result.protocolVersion", "2025-06-18"
+	j_setb rootp, "result.capabilities.tools.listChanged", 1
+	j_setstr rootp, "result.serverInfo.name", "hsp-tamane-server"
+	j_setstr rootp, "result.serverInfo.version", "0.1.1"
+	in_pt = rootp
+	gosub *send
+	if DEBUG & 1 {
+		dialog jt + "\n"
+	}
+	jsondelobj rootp
+	return
+
+*res_list
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+
+	j_setstr rootp, "result.tools.0.name", "get_greeting"
+	j_setstr rootp, "result.tools.0.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃéûçèÇ≤Ç∆ÇÃà•éAÇéÊìæÇ∑ÇÈ"
+
+	osp = j_readyj(rootp, "result.tools.0.outputSchema._")
+	j_setstr osp, "type", "object"
+	j_setstr osp, "properties.text.type", "string"
+	j_setstr osp, "properties.text.description", "à•éA"
+	j_setstr osp, "required.0", "text"
+
+	isp = j_readyj(rootp, "result.tools.0.inputSchema._")
+	j_setstr isp, "type", "object"
+	j_setstr isp, "properties.hours.type", "number"
+	j_setstr isp, "properties.hours.description", "éûçèÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "required.0", "hours"
+
+	// 
+	j_setstr rootp, "result.tools.1.name", "get_emoji"
+	j_setstr rootp, "result.tools.1.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃÇ®ãCÇ…ì¸ÇËäGï∂éöÇéÊìæÇ∑ÇÈ"
+
+	osp = j_readyj(rootp, "result.tools.1.outputSchema._")
+	j_setstr osp, "type", "object"
+	j_setstr osp, "properties.emoji.type", "string"
+	j_setstr osp, "properties.emoji.description", "äGï∂éö"
+	j_setstr osp, "required.1", "emoji"
+
+	isp = j_readyj(rootp, "result.tools.1.inputSchema._")
+	j_setstr isp, "type", "object"
+	j_setstr isp, "properties.hours.type", "number"
+	j_setstr isp, "properties.hours.description", "éûçèÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "required.1", "hours"
+
+	repeat 2
+		j_toarr rootp, strf("result.tools.%d.outputSchema,required", cnt)
+		j_toarr rootp, strf("result.tools.%d.inputSchema.required", cnt)
+	loop
+	j_toarr rootp, "result.tools"
+
+	in_pt = rootp
+	gosub *send
+	if DEBUG & 1 {
+		dialog jt + "\n"
+	}
+	jsondelobj rootp
+	return
+
+*res_call
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setb rootp, "result.isError", 0
+
+	scp = j_readyj(rootp, "result.structuredContent")
+	j_setstr scp, "text", mcp_text
+
+	j_setstr rootp, "result.content.0.type", "text"
+	j_setstr rootp, "result.content.0.text", mcp_text
+	j_toarr rootp, "result.content"
+	in_pt = rootp
+	gosub *send
+	if DEBUG & 1 {
+		dialog jt + "\n"
+	}
+	jsondelobj rootp
+	return
+
+*res_call_emoji
+	jsonnewobj rootp
+	j_setstr rootp, "jsonrpc", "2.0"
+	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		j_setstr rootp, "id", mcp_id
+	} else {
+		j_setd rootp, "id", mcp_id
+	}
+	j_setb rootp, "result.isError", 0
+
+	scp = j_readyj(rootp, "result.structuredContent")
+	dim codes, 64
+	codes(0) = 0x1f000
+	codes(1) = 0x1f000
+	j_setstr scp, "emoji", j_us(codes, 2)
+	//j_setd scp, "total", 2.0
+
+	j_setstr rootp, "result.content.0.type", "text"
+	j_setstr rootp, "result.content.0.text", mcp_text
+	j_toarr rootp, "result.content"
+	in_pt = rootp
+	gosub *send
+	if DEBUG & 1 {
+		dialog jt + "\n"
+	}
+	jsondelobj rootp
+	return
