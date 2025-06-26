@@ -97,45 +97,81 @@
 		if namesp {
 			jsongets mcp_params_name, "name", namesp
 		}
+
+		if mcp_params_name == "get_greeting" {
+			goto *act_greeting
+		}
+		if mcp_params_name == "get_fav_emoji" {
+			goto *act_fav_emoji
+		}		
 		
-		if mcp_params_name != "get_greeting" {
-			mcp_code = EC_METHOD
-			mcp_message = "Invalid params name"
-			gosub *res_err
-			return
-		}
-
-		hours = -999.0
-		p = j_getj(-1, "params.arguments.hours")
-		if p {
-			jsongetd hours, "hours", p
-			if stat == 1 {
-				p = 0
-			}
-		}
-		if p == 0 {
-			mcp_code = EC_INVALIDPARAM
-			mcp_message = "Invalid param"
-			gosub *res_err
-			return
-		}
-
-		mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
-		if 5.0 <= hours & hours < 11.0 {
-			mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
-		}
-		if 11.0 <= hours & hours < 18.0 {
-			mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
-		}
-		if 18.0 <= hours & hours < 11.0 {
-			mcp_text = "ÇŸÇµÇΩÇ‹Å`"
-		}
-		gosub *res_call
-		return
+		mcp_code = EC_METHOD
+		mcp_message = "Invalid params name"
+		gosub *res_err
+		return	
 	}
 	mcp_code = EC_METHOD
 	mcp_message = "Invalid method"
 	gosub *res_err
+	return
+
+*act_greeting
+	hours = -999.0
+	p = j_getj(-1, "params.arguments.hours")
+	if p {
+		jsongetd hours, "hours", p
+		if stat == 1 {
+			p = 0
+		}
+			}
+	if p == 0 {
+		mcp_code = EC_INVALIDPARAM
+		mcp_message = "Invalid param"
+		gosub *res_err
+		return
+	}
+
+	mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+	if 5.0 <= hours & hours < 11.0 {
+		mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+	}
+	if 11.0 <= hours & hours < 18.0 {
+		mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+	}
+	if 18.0 <= hours & hours < 11.0 {
+		mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+	}
+	gosub *res_call
+	return
+
+
+*act_fav_emoji
+	hours = -999.0
+	p = j_getj(-1, "params.arguments.hours")
+	if p {
+		jsongetd hours, "hours", p
+		if stat == 1 {
+			p = 0
+		}
+			}
+	if p == 0 {
+		mcp_code = EC_INVALIDPARAM
+		mcp_message = "Invalid param"
+		gosub *res_err
+		return
+	}
+
+	mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+	if 5.0 <= hours & hours < 11.0 {
+		mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+	}
+	if 11.0 <= hours & hours < 18.0 {
+		mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+	}
+	if 18.0 <= hours & hours < 11.0 {
+		mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+	}
+	gosub *res_call_fav_emoji
 	return
 
 
@@ -216,7 +252,7 @@
 	j_setstr isp, "required.0", "hours"
 
 	// 
-	j_setstr rootp, "result.tools.1.name", "get_emoji"
+	j_setstr rootp, "result.tools.1.name", "get_fav_emoji"
 	j_setstr rootp, "result.tools.1.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃÇ®ãCÇ…ì¸ÇËäGï∂éöÇéÊìæÇ∑ÇÈ"
 
 	osp = j_readyj(rootp, "result.tools.1.outputSchema._")
@@ -269,7 +305,7 @@
 	jsondelobj rootp
 	return
 
-*res_call_emoji
+*res_call_fav_emoji
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
 	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
@@ -284,7 +320,6 @@
 	codes(0) = 0x1f000
 	codes(1) = 0x1f000
 	j_setstr scp, "emoji", j_us(codes, 2)
-	//j_setd scp, "total", 2.0
 
 	j_setstr rootp, "result.content.0.type", "text"
 	j_setstr rootp, "result.content.0.text", mcp_text
