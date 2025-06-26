@@ -215,10 +215,10 @@
 	} else {
 		j_setd rootp, "id", mcp_id
 	}
-	j_setstr rootp, "result.protocolVersion", "2025-06-18"
+	j_setstr rootp, "result.protocolVersion", "2025-03-26"
 	j_setb rootp, "result.capabilities.tools.listChanged", 1
-	j_setstr rootp, "result.serverInfo.name", "hsp-tamane-server"
-	j_setstr rootp, "result.serverInfo.version", "0.1.1"
+	j_setstr rootp, "result.serverInfo.name", "hsp-resources-server"
+	j_setstr rootp, "result.serverInfo.version", "0.1.0"
 	in_pt = rootp
 	gosub *send
 	if DEBUG & 1 {
@@ -255,12 +255,6 @@
 	j_setstr rootp, "result.tools.1.name", "get_fav_emoji"
 	j_setstr rootp, "result.tools.1.description", "‚½‚Ü‚Ë‚¿‚á‚ñ‚Ì‚¨‹C‚É“ü‚èŠG•¶Žš‚ðŽæ“¾‚·‚é"
 
-	osp = j_readyj(rootp, "result.tools.1.outputSchema._")
-	j_setstr osp, "type", "object"
-	j_setstr osp, "properties.emoji.type", "string"
-	j_setstr osp, "properties.emoji.description", "ŠG•¶Žš"
-	j_setstr osp, "required.1", "emoji"
-
 	isp = j_readyj(rootp, "result.tools.1.inputSchema._")
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
@@ -268,7 +262,6 @@
 	j_setstr isp, "required.1", "hours"
 
 	repeat 2
-		j_toarr rootp, strf("result.tools.%d.outputSchema,required", cnt)
 		j_toarr rootp, strf("result.tools.%d.inputSchema.required", cnt)
 	loop
 	j_toarr rootp, "result.tools"
@@ -291,9 +284,6 @@
 	}
 	j_setb rootp, "result.isError", 0
 
-	scp = j_readyj(rootp, "result.structuredContent")
-	j_setstr scp, "text", mcp_text
-
 	j_setstr rootp, "result.content.0.type", "text"
 	j_setstr rootp, "result.content.0.text", mcp_text
 	j_toarr rootp, "result.content"
@@ -314,12 +304,6 @@
 		j_setd rootp, "id", mcp_id
 	}
 	j_setb rootp, "result.isError", 0
-
-	scp = j_readyj(rootp, "result.structuredContent")
-	dim codes, 64
-	codes(0) = 0x1f000
-	codes(1) = 0x1f000
-	j_setstr scp, "emoji", j_us(codes, 2)
 
 	j_setstr rootp, "result.content.0.type", "text"
 	j_setstr rootp, "result.content.0.text", mcp_text
