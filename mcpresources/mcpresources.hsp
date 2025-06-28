@@ -9,23 +9,51 @@
 #const EC_INVALIDPARAM -32602
 #const EC_INTERNAL -32603
 #const EC_NOTFOUND -32002
+#const EC_NOERR 0
 
 #const CP_UTF8 65001
 #const STD_INPUT_HANDLE -10
 #const STD_OUTPUT_HANDLE -11
+#const STD_ERROR_HANDLE -12
 #const NULL 0
 
 #const DEBUG 2
 
+#define _log(%1) __log %1, __line__
+
+#module
+#deffunc __log str _in_text, int _in_line
+	if DEBUG@ == 0 {
+		return
+	}
+	s = strf("#%d: %s", _in_line, _in_text)
+	if DEBUG@ & 1 {
+		dialog s
+	}
+	if DEBUG@ & 2 {
+		nkfcnv@ u8b, s, "wS"
+		len = strlen(u8b)
+		wb = 0
+		WriteFile stderr@, varptr(u8b), len, varptr(wb), NULL
+	}
+	return
+#global
+
 	exe_dir = dirinfo(1)
+	host = "hsphelp"
 
 	GetStdHandle STD_OUTPUT_HANDLE
 	stdout = stat
+
+	GetStdHandle STD_ERROR_HANDLE
+	stderr = stat
+
 	SetConsoleOutputCP CP_UTF8
 
+	_log strf("hsp mcp resources \n")
 
-	readbuf = ""
 	repeat
+		readbuf = ""
 		input readbuf, 1024 * 1024 - 16, 1
 		in_t = readbuf
 		gosub *parse
@@ -51,26 +79,6 @@
 		return result
 	}
 
-	jsongetobj idp, "id", rootp
-	mcp_code = EC_PARSE
-	if idp {
-		jsonnext jtype, idp, 3 // type
-		if jtype == T_NUMBER@json {
-			jsongetd idn, "id", rootp
-			mcp_id = idn
-			mcp_code = 0
-		} else {
-			if jtype == T_STRING@json {
-				jsongets ids, "id", rootp
-				mcp_id = ids
-				mcp_code = 0
-			}
-		}
-	}
-	if mcp_code != 0 {
-		return "Id error"
-	}
-
 	jsongets s, "method", rootp
 	if stat == 1 {
 		result = "Method error"
@@ -78,17 +86,47 @@
 		return result
 	}
 	mcp_method = s
+	_log strf("method, %s \n", mcp_method)
+
+	index = instr(mcp_method, 0, "notifications/")
+	if index < 0 {
+		jsongetobj idp, "id", rootp
+		mcp_code = EC_PARSE
+		if idp {
+			jsonnext jtype, idp, 3 // type
+			if jtype == T_NUMBER@json {
+				jsongetd idn, "id", rootp
+				mcp_id = idn
+				mcp_code = EC_NOERR
+			} else {
+				if jtype == T_STRING@json {
+					jsongets ids, "id", rootp
+					mcp_id = ids
+					mcp_code = EC_NOERR
+				}
+			}
+		}
+		if mcp_code != EC_NOERR {
+			_log strf("idp, %s, jtype, %d \n", idp, jtype)
+			return "Id error"
+		}
+	}
 
 	result = "OK"
-	mcp_code = 0
+	mcp_code = EC_NOERR
 	return result
 
 *analyze
+	_log strf("method, %s \n", mcp_method)
+	
 	if mcp_method == "initialize" {
+		_log strf("initialize, %s \n", in_t)
+		
 		gosub *res_ini
 		return
 	}
-	if mcp_method == "notification/initialized" {
+	if mcp_method == "notifications/initialized" {
+		_log strf("ignore %s \n", mcp_method)
 		return // –³Ž‹‚·‚é
 	}
 	if mcp_method == "resources/list" {
@@ -103,29 +141,22 @@
 		}
 
 		mcp_base_name = mcp_params_uri
-		strrep mcp_base_name, "file:", ""
+		strrep mcp_base_name, "file://" + host, ""
 		fwstat = stat
 		mcp_base_name = strtrim(mcp_base_name, 0, '/')
 		strrep mcp_base_name, ".hs", ""
 		bwstat = stat
+
+		_log strf("mcp_base_name, %s, uri, %s \n", mcp_base_name, mcp_params_uri)
+		
 		if fwstat != 1 | bwstat != 1 {
 			mcp_code = EC_INVALIDPARAM
-			mcp_message = "Invalid uri" // TODO: 
+			mcp_message = "Invalid uri"
 			gosub *res_err
-			if DEBUG & 2 {
-				// file://hgimg4/ ‚ª“n‚³‚ê‚½
-				dialog strf("%s", mcp_params_uri)
-				end
-			}
 			return
 		}
 
 		goto *act_hs
-
-		mcp_code = EC_METHOD
-		mcp_message = "Invalid params name"
-		gosub *res_err
-		return	
 	}
 	mcp_code = EC_METHOD
 	mcp_message = "Invalid method"
@@ -133,24 +164,23 @@
 	return
 
 *act_hs
-	mcp_base_name = "hgimg4"
+	mcp_base_name = "foo"
+	//mcp_base_name = "form_decode"
 	target_path = strf("%s/hsphelp/%s.hs", exe_dir, mcp_base_name)
+	_log strf("exe_dir %s, %s \n", exe_dir, target_path)
 	exist target_path
 	file_byte = strsize
 	if file_byte <= 0 {
 		mcp_code = EC_NOTFOUND
 		mcp_message = "Resource not found"
 		gosub *res_err
-		if DEBUG & 2 {
-			dialog strf("exe_dir %s, %s", exe_dir, target_path)
-			end
-		}
 		return
 	}
 	sdim buf, file_byte + 16
 	bload target_path, buf, file_byte
 
 	mcp_text = buf
+
 	gosub *res_resource
 	return
 
@@ -181,9 +211,9 @@
 	j_setstr rootp, "error.message", mcp_message
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt + "\n"
+
 	jsondelobj rootp
 	return
 
@@ -201,9 +231,7 @@
 	j_setstr rootp, "result.serverInfo.version", "0.1.1"
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+	_log jt + "\n"
 	jsondelobj rootp
 	return
 
@@ -219,7 +247,7 @@
 	hs_base_name = "hgimg4"
 
 	j_setstr rootp, "result.resources.0.name", strf("%s.hs", hs_base_name)
-	j_setstr rootp, "result.resources.0.uri", strf("file:///%s.hs", hs_base_name)
+	j_setstr rootp, "result.resources.0.uri", strf("file://%s/%s.hs", host, hs_base_name)
 	j_setstr rootp, "result.resources.0.title", strf("%s help file", hs_base_name)
 	j_setstr rootp, "result.resources.0.description", strf("%s ƒwƒ‹ƒvƒtƒ@ƒCƒ‹", hs_base_name)
 	j_setstr rootp, "result.resources.0.mimeType", "text/plain"
@@ -230,9 +258,9 @@
 
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt + "\n"
+
 	jsondelobj rootp
 	return
 
@@ -248,7 +276,7 @@
 
 	hs_base_name = "hgimg4"
 	
-	j_setstr rootp, "result.contents.0.uri", strf("file:///%s.hs", hs_base_name)
+	j_setstr rootp, "result.contents.0.uri", strf("file://%s/%s.hs", host, hs_base_name)
 	j_setstr rootp, "result.contents.0.name", strf("%s.hs", hs_base_name)
 	j_setstr rootp, "result.contents.0.title", strf("%s help file", hs_base_name)
 	j_setstr rootp, "result.contents.0.mimeType", "text/plain"
@@ -257,8 +285,8 @@
 	j_toarr rootp, "result.contents"
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt + "\n"
+
 	jsondelobj rootp
 	return
