@@ -15,13 +15,14 @@
 #const STD_OUTPUT_HANDLE -11
 #const NULL 0
 
-#const DEBUG 0
+#const DEBUG 2
 
 	exe_dir = dirinfo(1)
 
 	GetStdHandle STD_OUTPUT_HANDLE
 	stdout = stat
 	SetConsoleOutputCP CP_UTF8
+
 
 	readbuf = ""
 	repeat
@@ -102,14 +103,20 @@
 		}
 
 		mcp_base_name = mcp_params_uri
-		strrep mcp_base_name, "file:///", ""
+		strrep mcp_base_name, "file:", ""
 		fwstat = stat
+		mcp_base_name = strtrim(mcp_base_name, 0, '/')
 		strrep mcp_base_name, ".hs", ""
 		bwstat = stat
 		if fwstat != 1 | bwstat != 1 {
 			mcp_code = EC_INVALIDPARAM
-			mcp_message = "Invalid uri"
+			mcp_message = "Invalid uri" // TODO: 
 			gosub *res_err
+			if DEBUG & 2 {
+				// file://hgimg4/ ‚ª“n‚³‚ê‚½
+				dialog strf("%s", mcp_params_uri)
+				end
+			}
 			return
 		}
 
@@ -127,19 +134,21 @@
 
 *act_hs
 	mcp_base_name = "hgimg4"
-	target_path = strf("%s/%s.hs", exe_dir, mcp_base_name)
+	target_path = strf("%s/hsphelp/%s.hs", exe_dir, mcp_base_name)
 	exist target_path
 	file_byte = strsize
 	if file_byte <= 0 {
 		mcp_code = EC_NOTFOUND
 		mcp_message = "Resource not found"
 		gosub *res_err
+		if DEBUG & 2 {
+			dialog strf("exe_dir %s, %s", exe_dir, target_path)
+			end
+		}
 		return
 	}
 	sdim buf, file_byte + 16
-	bload file_byte, buf
-	// •ÏŠ·‚·‚é
-	//nkfcnv u8text, buf, "wS"
+	bload target_path, buf, file_byte
 
 	mcp_text = buf
 	gosub *res_resource
@@ -189,7 +198,7 @@
 	j_setstr rootp, "result.protocolVersion", "2025-03-26"
 	j_setb rootp, "result.capabilities.resources.listChanged", 1
 	j_setstr rootp, "result.serverInfo.name", "hsp-resources-server"
-	j_setstr rootp, "result.serverInfo.version", "0.1.0"
+	j_setstr rootp, "result.serverInfo.version", "0.1.1"
 	in_pt = rootp
 	gosub *send
 	if DEBUG & 1 {
@@ -212,7 +221,7 @@
 	j_setstr rootp, "result.resources.0.name", strf("%s.hs", hs_base_name)
 	j_setstr rootp, "result.resources.0.uri", strf("file:///%s.hs", hs_base_name)
 	j_setstr rootp, "result.resources.0.title", strf("%s help file", hs_base_name)
-	j_setstr rootp, "result.resources.0.description", ""
+	j_setstr rootp, "result.resources.0.description", strf("%s ƒwƒ‹ƒvƒtƒ@ƒCƒ‹", hs_base_name)
 	j_setstr rootp, "result.resources.0.mimeType", "text/plain"
 
 	//j_setstr rootp, "result.nextCursor", "next-page-cursor"
@@ -237,9 +246,11 @@
 	}
 	j_setb rootp, "result.isError", 0
 
-	j_setstr rootp, "result.contents.0.uri", "hs:///hsp.hs"
-	j_setstr rootp, "result.contents.0.name", "hsp.hs"
-	j_setstr rootp, "result.contents.0.title", "help file"
+	hs_base_name = "hgimg4"
+	
+	j_setstr rootp, "result.contents.0.uri", strf("file:///%s.hs", hs_base_name)
+	j_setstr rootp, "result.contents.0.name", strf("%s.hs", hs_base_name)
+	j_setstr rootp, "result.contents.0.title", strf("%s help file", hs_base_name)
 	j_setstr rootp, "result.contents.0.mimeType", "text/plain"
 	j_setstr rootp, "result.contents.0.text", mcp_text
 
