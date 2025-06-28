@@ -41,9 +41,9 @@
 #global
 
 	exe_dir = dirinfo(1)
-	protocol = "memo"
+	protocol = "file"
 	host = "hsphelp"
-	ext = "txt"
+	ext = "hs"
 
 	GetStdHandle STD_OUTPUT_HANDLE
 	stdout = stat
@@ -167,9 +167,6 @@
 	return
 
 *act_hs
-	//mcp_base_name = "foo"
-	//mcp_base_name = "form_decode"
-	// ‚±‚±‚¾‚¯ .hs
 	target_path = strf("%s/hsphelp/%s.hs", exe_dir, mcp_base_name)
 	_log strf("exe_dir %s, %s \n", exe_dir, target_path)
 	exist target_path
@@ -285,11 +282,9 @@
 	}
 	j_setb rootp, "result.isError", 0
 
-	//hs_base_name = "hgimg4"
-	
-	j_setstr rootp, "result.contents.0.uri", strf("%s://%s/%s.%s", protocol, host, hs_base_name, ext)
-	j_setstr rootp, "result.contents.0.name", strf("%s.%s", hs_base_name, ext)
-	j_setstr rootp, "result.contents.0.title", strf("%s help file", hs_base_name)
+	j_setstr rootp, "result.contents.0.uri", strf("%s://%s/%s.%s", protocol, host, mcp_base_name, ext)
+	j_setstr rootp, "result.contents.0.name", strf("%s.%s", mcp_base_name, ext)
+	j_setstr rootp, "result.contents.0.title", strf("%s help file", mcp_base_name)
 	j_setstr rootp, "result.contents.0.mimeType", "text/plain"
 	j_setstr rootp, "result.contents.0.text", mcp_text
 
