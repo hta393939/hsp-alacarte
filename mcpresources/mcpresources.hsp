@@ -188,10 +188,10 @@
 
 *send
 	jsonout jt, in_pt
-	j_delnl jt
-	tailnl = jt + "\n"
-	nkfcnv u8b, tailnl, "wS"
+	j_delnl jt, 1
+	nkfcnv u8b, jt, "wS"
 	len = strlen(u8b)
+	wb = 0
 	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
 	return
 
@@ -213,7 +213,7 @@
 	in_pt = rootp
 	gosub *send
 
-	_log jt + "\n"
+	_log jt
 
 	jsondelobj rootp
 	return
@@ -232,7 +232,7 @@
 	j_setstr rootp, "result.serverInfo.version", "0.1.1"
 	in_pt = rootp
 	gosub *send
-	_log jt + "\n"
+	_log jt
 	jsondelobj rootp
 	return
 
@@ -267,7 +267,7 @@
 	in_pt = rootp
 	gosub *send
 
-	_log jt + "\n"
+	_log jt
 
 	jsondelobj rootp
 	return
@@ -292,7 +292,7 @@
 	in_pt = rootp
 	gosub *send
 
-	_log jt + "\n"
+	_log jt
 
 	jsondelobj rootp
 	return

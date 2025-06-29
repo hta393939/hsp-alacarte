@@ -10,8 +10,8 @@
 #const T_ARRAY 5
 #const T_OBJECT 6
 
-// 改行の除去
-#deffunc j_delnl var text
+// 改行の除去。add = 1 のとき、余分が1つ以上あったら最後に0x0aを追加する
+#deffunc j_delnl var text, int add
 	len = strlen(text)
 	offset = 0
 	repeat len
@@ -22,7 +22,13 @@
 		poke text, offset, u8
 		offset += 1
 	loop
-	poke text, offset, 0x00
+
+	if add & (offset + 1 < len + 1) {
+		poke text, offset, 0x0a
+		poke text, offset + 1, 0x00
+	} else {
+		poke text, offset, 0x00
+	}
 	return
 
 // 一段上を返す。無かったら作る。
