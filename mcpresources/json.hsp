@@ -10,7 +10,7 @@
 #const T_ARRAY 5
 #const T_OBJECT 6
 
-// 改行の除去
+// 改行の除去、末尾に 0x0a 追加
 #deffunc j_delnl var text
 	len = strlen(text)
 	offset = 0
@@ -22,7 +22,8 @@
 		poke text, offset, u8
 		offset += 1
 	loop
-	poke text, offset, 0x00
+	poke text, offset, 0x0a
+	poke text, offset + 1, 0x00
 	return
 
 // 一段上を返す。無かったら作る。
@@ -46,8 +47,12 @@
 	return parent
 
 #deffunc j_setstr int pt, str paths, str text
-	t = j_readyj(pt, paths)
-	jsonputs@ t, _name, text
+	objpt = j_readyj(pt, paths)
+
+	sj = text
+	nkfcnv@ u8b, sj, "wS"
+
+	jsonputs@ objpt, _name, u8b
 	return
 
 #deffunc j_setd int pt, str paths, double val

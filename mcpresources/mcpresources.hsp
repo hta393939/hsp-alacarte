@@ -189,10 +189,10 @@
 *send
 	jsonout jt, in_pt
 	j_delnl jt
-	tailnl = jt + "\n"
-	nkfcnv u8b, tailnl, "wS"
-	len = strlen(u8b)
-	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
+	//nkfcnv u8b, jt, "wS"
+	len = strlen(jt)
+	wb = 0
+	WriteFile stdout, varptr(jt), len, varptr(wb), NULL
 	return
 
 
