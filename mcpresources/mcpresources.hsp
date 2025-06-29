@@ -227,8 +227,8 @@
 		j_setd rootp, "id", mcp_id
 	}
 	j_setstr rootp, "result.protocolVersion", "2025-03-26"
-	j_setb rootp, "result.capabilities.resources.listChanged", 1
-	j_setstr rootp, "result.serverInfo.name", "hsp-resources-server"
+	objpt = j_readyj(rootp, "result.capabilities.resources._")
+	j_setstr rootp, "result.serverInfo.name", "hsp-doclib-resources"
 	j_setstr rootp, "result.serverInfo.version", "0.1.1"
 	in_pt = rootp
 	gosub *send
