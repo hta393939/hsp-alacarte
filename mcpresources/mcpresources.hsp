@@ -56,13 +56,15 @@
 
 	SetConsoleOutputCP CP_UTF8
 
+	jsonnkf "Wsc", "Sw"
+
 	_log strf("hsp mcp resources \n")
 
 	res_num = 2
 	sdim names, 260, res_num
 	sdim uris, 4096, res_num
 	names(0) = "hspmath"
-	names(1) = "hgimg4"
+	names(1) = "hspmucom"
 	repeat res_num
 		uris(cnt) = strf("%s://%s/%s.%s", protocol, host, names(cnt), ext)
 	loop
@@ -156,22 +158,22 @@
 			jsongets mcp_params_uri, "uri", namesp
 		}
 
-		mcp_base_name = mcp_params_uri
-		strrep mcp_base_name, protocol + "://" + host, ""
-		fwstat = stat
-		mcp_base_name = strtrim(mcp_base_name, 1, '/') // 1: ç∂í[
-		strrep mcp_base_name, strf(".%s", ext), ""
-		bwstat = stat
+		idx = -1
+		repeat res_num
+			if uris(cnt) == mcp_params_uri {
+				idx = cnt
+				break
+			}
+		loop
 
-		_log strf("mcp_base_name, %s, uri, %s \n", mcp_base_name, mcp_params_uri)
-		
-		if fwstat != 1 | bwstat != 1 {
+		if idx < 0 {
 			mcp_code = EC_INVALIDPARAM
 			mcp_message = "Invalid uri"
 			gosub *res_err
 			return
 		}
 
+		mcp_base_name = names(idx)
 		goto *act_hs
 	}
 	mcp_code = EC_METHOD
@@ -193,9 +195,11 @@
 	sdim buf, file_byte + 16
 	bload target_path, buf, file_byte
 
-	nkfcnv u8buf, buf, "wS"
-	b64encode mcp_blob, u8buf, -1
-	//mcp_text = buf
+	//nkfcnv u8buf, buf, "wS"
+	//b64encode mcp_blob, u8buf, -1
+	mcp_blob = ""
+
+	mcp_text = buf
 
 	gosub *res_resource
 	return
@@ -204,10 +208,11 @@
 *send
 	jsonout jt, in_pt
 	j_delnl jt, 1
-	nkfcnv u8b, jt, "wS"
-	len = strlen(u8b)
+
+	//nkfcnv u8b, jt, "wS"
+	len = strlen(jt)
 	wb = 0
-	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
+	WriteFile stdout, varptr(jt), len, varptr(wb), NULL
 	return
 
 
