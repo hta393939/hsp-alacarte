@@ -58,6 +58,15 @@
 
 	_log strf("hsp mcp resources \n")
 
+	res_num = 2
+	sdim names, 260, res_num
+	sdim uris, 4096, res_num
+	names(0) = "hspmath"
+	names(1) = "hgimg4"
+	repeat res_num
+		uris(cnt) = strf("%s://%s/%s.%s", protocol, host, names(cnt), ext)
+	loop
+
 	mcp_blob = ""
 	repeat
 		readbuf = ""
@@ -184,7 +193,8 @@
 	sdim buf, file_byte + 16
 	bload target_path, buf, file_byte
 
-	b64encode mcp_blob, buf, -1
+	nkfcnv u8buf, buf, "wS"
+	b64encode mcp_blob, u8buf, -1
 	//mcp_text = buf
 
 	gosub *res_resource
@@ -250,16 +260,12 @@
 		j_setd rootp, "id", mcp_id
 	}
 
-	sdim names, 260, 2
-	names(0) = "form_decode2"
-	names(1) = "form_decode3"
-
-	repeat length(names)
+	repeat res_num
 		hs_base_name = names(cnt)
 
 		p = j_readyj(rootp, strf("result.resources.%d._", cnt))
 		j_setstr p, "name", strf("%s.%s", hs_base_name, ext)
-		j_setstr p, "uri", strf("%s://%s/%s.%s", protocol, host, hs_base_name, ext)
+		j_setstr p, "uri", uris(cnt)
 		j_setstr p, "title", strf("%s help file", hs_base_name)
 		j_setstr p, "description", strf("%s ヘルプファイル", hs_base_name)
 		j_setstr p, "mimeType", "text/plain"
@@ -290,15 +296,13 @@
 	j_setstr rootp, "result.contents.0.uri", strf("%s://%s/%s.%s", protocol, host, mcp_base_name, ext)
 	j_setstr rootp, "result.contents.0.name", strf("%s.%s", mcp_base_name, ext)
 	j_setstr rootp, "result.contents.0.title", strf("%s help file", mcp_base_name)
+	j_setstr rootp, "result.contents.0.mimeType", "text/plain"
 
 	if mcp_blob != "" {
-		mime = "text/plain;charset=Shift_JIS"
 		j_setstr rootp, "result.contents.0.blob", mcp_blob
 	} else {
-		mime = "text/plain"
 		j_setstr rootp, "result.contents.0.text", mcp_text
 	}
-	j_setstr rootp, "result.contents.0.mimeType", mime
 
 	j_toarr rootp, "result.contents"
 	in_pt = rootp
