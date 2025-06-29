@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 hta393939
+// SPDX-License-Identifier: BSD-3-Clause
+
 #include "hsp3cl.as"
 #include "kernel32.as"
 
@@ -41,7 +44,7 @@
 #global
 
 	exe_dir = dirinfo(1)
-	protocol = "file"
+	protocol = "docs"
 	host = "hsphelp"
 	ext = "hs"
 
@@ -55,6 +58,7 @@
 
 	_log strf("hsp mcp resources \n")
 
+	mcp_blob = ""
 	repeat
 		readbuf = ""
 		input readbuf, 1024 * 1024 - 16, 1
@@ -180,7 +184,8 @@
 	sdim buf, file_byte + 16
 	bload target_path, buf, file_byte
 
-	mcp_text = buf
+	b64encode mcp_blob, buf, -1
+	//mcp_text = buf
 
 	gosub *res_resource
 	return
@@ -285,8 +290,15 @@
 	j_setstr rootp, "result.contents.0.uri", strf("%s://%s/%s.%s", protocol, host, mcp_base_name, ext)
 	j_setstr rootp, "result.contents.0.name", strf("%s.%s", mcp_base_name, ext)
 	j_setstr rootp, "result.contents.0.title", strf("%s help file", mcp_base_name)
-	j_setstr rootp, "result.contents.0.mimeType", "text/plain"
-	j_setstr rootp, "result.contents.0.text", mcp_text
+
+	if mcp_blob != "" {
+		mime = "text/plain;charset=Shift_JIS"
+		j_setstr rootp, "result.contents.0.blob", mcp_blob
+	} else {
+		mime = "text/plain"
+		j_setstr rootp, "result.contents.0.text", mcp_text
+	}
+	j_setstr rootp, "result.contents.0.mimeType", mime
 
 	j_toarr rootp, "result.contents"
 	in_pt = rootp
