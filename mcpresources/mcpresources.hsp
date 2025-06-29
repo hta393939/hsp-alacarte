@@ -25,19 +25,20 @@
 #define _log(%1) __log %1, __line__
 
 #module
+// UTF-8 ÇÃÉçÉMÉìÉO
 #deffunc __log str _in_text, int _in_line
 	if DEBUG@ == 0 {
 		return
 	}
 	s = strf("#%d: %s", _in_line, _in_text)
 	if DEBUG@ & 1 {
-		dialog s
+		nkfcnv@ sjb, s, "Ws"
+		dialog sjb
 	}
 	if DEBUG@ & 2 {
-		nkfcnv@ u8b, s, "wS"
-		len = strlen(u8b)
+		len = strlen(s)
 		wb = 0
-		WriteFile stderr@, varptr(u8b), len, varptr(wb), NULL
+		WriteFile stderr@, varptr(s), len, varptr(wb), NULL
 	}
 	return
 	
