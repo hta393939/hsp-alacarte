@@ -198,15 +198,15 @@
 	bload target_path, buf, file_byte
 
 	mcp_blob = ""
-	mcp_text = buf
 
-	// 内部バッファの拡大。半角カタカナで3倍
-	len = strlen(mcp_text)
-	src = ""
-	dst = ""
-	nkfcnv dst, src, "wS", -1, len * 3
-
+	// 内部バッファの拡大。最大、半角カタカナで3倍
+	len = strlen(buf)
+	nkfcnv mcp_text, buf, "wS", -1, len * 3
+	// UTF-8 -> UTF-8 へ変更する
+	jsonnkf "Wsc", "wW"
 	gosub *res_resource
+	// jsonputs 時変換を元に戻す
+	jsonnkf "Wsc", "Sw"
 	return
 
 
