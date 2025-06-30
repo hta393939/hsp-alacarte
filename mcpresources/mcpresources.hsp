@@ -56,16 +56,17 @@
 	stderr = stat
 
 	SetConsoleOutputCP CP_UTF8
-
+	// 後ろの引数で jsonputs 時の変換を指定
 	jsonnkf "Wsc", "Sw"
 
 	_log strf("hsp mcp resources \n")
 
-	res_num = 2
+	res_num = 3
 	sdim names, 260, res_num
 	sdim uris, 4096, res_num
-	names(0) = "hspmath"
+	names(0) = "sprite"
 	names(1) = "hspmucom"
+	names(2) = "hgimg4"
 	repeat res_num
 		uris(cnt) = strf("%s://%s/%s.%s", protocol, host, names(cnt), ext)
 	loop
@@ -196,11 +197,14 @@
 	sdim buf, file_byte + 16
 	bload target_path, buf, file_byte
 
-	//nkfcnv u8buf, buf, "wS"
-	//b64encode mcp_blob, u8buf, -1
 	mcp_blob = ""
-
 	mcp_text = buf
+
+	// 内部バッファの拡大。半角カタカナで3倍
+	len = strlen(mcp_text)
+	src = ""
+	dst = ""
+	nkfcnv dst, src, "wS", -1, len * 3
 
 	gosub *res_resource
 	return
@@ -210,7 +214,6 @@
 	jsonout jt, in_pt
 	j_delnl jt, 1
 
-	//nkfcnv u8b, jt, "wS"
 	len = strlen(jt)
 	wb = 0
 	WriteFile stdout, varptr(jt), len, varptr(wb), NULL

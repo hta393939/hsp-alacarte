@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 hta393939
+// SPDX-License-Identifier: BSD-3-Clause
+
 #include "hspinet.as"
 
 #module json
