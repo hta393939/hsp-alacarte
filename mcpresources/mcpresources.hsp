@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2025 hta393939
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BSD-3-Clause OR CC0-1.0
 
 #include "hsp3cl.as"
 #include "kernel32.as"
@@ -201,7 +201,7 @@
 
 	// 内部バッファの拡大。最大、半角カタカナで3倍
 	len = strlen(buf)
-	nkfcnv mcp_text, buf, "wS", -1, len * 3
+	nkfcnv mcp_text, buf, "wS", -1, len * 3 + 16
 	// UTF-8 -> UTF-8 へ変更する
 	jsonnkf "Wsc", "wW"
 	gosub *res_resource

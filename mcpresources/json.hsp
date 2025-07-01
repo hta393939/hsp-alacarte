@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2025 hta393939
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BSD-3-Clause OR CC0-1.0
 
 #include "hspinet.as"
 
@@ -105,44 +105,5 @@
 	loop
 	_name = ss(num - 1)
 	return parent
-
-#defcfunc j_us array codes, int in_num
-	CODE_ESC = 0x5c
-	s = ""
-	repeat in_num
-		code = codes(cnt)
-		if code >= 0x10000 {
-			code -= 0x10000
-			fw = 0xd800 | ((code >> 10) & 0x3ff)
-			bw = 0xdc00 |  (code & 0x3ff)
-			s += strf("%cu%04x%cu%04x", CODE_ESC, fw, CODE_ESC, bw)
-			continue
-		}
-		if code == 0x0d {
-			s += strf("%cr", CODE_ESC)
-			continue
-		}
-		if code == 0x0a {
-			s += strf("%cn", CODE_ESC)
-			continue
-		}
-		if code == 0x09 {
-			s += strf("%ct", CODE_ESC)
-			continue
-		}
-		if code == '"' {
-			s += strf("%c%c", CODE_ESC, '"')
-		}
-		if code == CODE_ESC {
-			s += strf("%c%c", CODE_ESC, CODE_ESC)
-			continue
-		}
-		if 0x20 <= code & code <= 0x7e {
-			s += strf("%c", code)
-			continue
-		}
-		s += strf("%cu%04x", CODE_ESC, code)
-	loop
-	return s
 
 #global
