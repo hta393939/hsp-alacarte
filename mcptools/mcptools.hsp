@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 hta393939
+// SPDX-License-Identifier: BSD-3-Clause OR CC0-1.0
+
 #include "hsp3cl.as"
 #include "kernel32.as"
 
@@ -8,20 +11,58 @@
 #const EC_METHOD -32601
 #const EC_INVALIDPARAM -32602
 #const EC_INTERNAL -32603
+#const EC_NOERR 0
 
 #const CP_UTF8 65001
 #const STD_INPUT_HANDLE -10
 #const STD_OUTPUT_HANDLE -11
+#const STD_ERROR_HANDLE -12
 #const NULL 0
 
-#const DEBUG 0
+#const DEBUG 2
+
+#define _log(%1) __log %1, __line__
+
+#module
+// UTF-8 ÇÃÉçÉMÉìÉO
+#deffunc __log str _in_text, int _in_line
+	if DEBUG@ == 0 {
+		return
+	}
+	s = strf("#%d: %s", _in_line, _in_text)
+	if DEBUG@ & 1 {
+		nkfcnv@ sjb, s, "Ws"
+		dialog sjb
+	}
+	if DEBUG@ & 2 {
+		len = strlen(s)
+		wb = 0
+		WriteFile stderr@, varptr(s), len, varptr(wb), NULL
+	}
+	return
+	
+#global
+
+	exe_dir = dirinfo(1)
+	protocol = "docs"
+	host = "hsphelp"
+	ext = "hs"
 
 	GetStdHandle STD_OUTPUT_HANDLE
 	stdout = stat
-	SetConsoleOutputCP CP_UTF8
 
-	readbuf = ""
+	GetStdHandle STD_ERROR_HANDLE
+	stderr = stat
+	
+	SetConsoleOutputCP CP_UTF8
+	// å„ÇÎÇÃà¯êîÇ≈ jsonputs éûÇÃïœä∑ÇéwíË
+	jsonnkf "Wsc", "Sw"
+
+	_log strf("hsp mcp tools \n")
+
+	mcp_blob = ""
 	repeat
+		readbuf = ""
 		input readbuf, 1024 * 1024 - 16, 1
 		in_t = readbuf
 		gosub *parse
@@ -47,26 +88,6 @@
 		return result
 	}
 
-	jsongetobj idp, "id", rootp
-	mcp_code = EC_PARSE
-	if idp {
-		jsonnext jtype, idp, 3 // type
-		if jtype == T_NUMBER@json {
-			jsongetd idn, "id", rootp
-			mcp_id = idn
-			mcp_code = 0
-		} else {
-			if jtype == T_STRING@json {
-				jsongets ids, "id", rootp
-				mcp_id = ids
-				mcp_code = 0
-			}
-		}
-	}
-	if mcp_code != 0 {
-		return "Id error"
-	}
-
 	jsongets s, "method", rootp
 	if stat == 1 {
 		result = "Method error"
@@ -74,6 +95,31 @@
 		return result
 	}
 	mcp_method = s
+	_log strf("method, %s \n", mcp_method)
+
+	index = instr(mcp_method, 0, "notifications/")
+	if index < 0 {
+		jsongetobj idp, "id", rootp
+		mcp_code = EC_PARSE
+		if idp {
+			jsonnext jtype, idp, 3 // type
+			if jtype == T_NUMBER@json {
+				jsongetd idn, "id", rootp
+				mcp_id = idn
+				mcp_code = EC_NOERR
+			} else {
+				if jtype == T_STRING@json {
+					jsongets ids, "id", rootp
+					mcp_id = ids
+					mcp_code = EC_NOERR
+				}
+			}
+		}
+		if mcp_code != EC_NOERR {
+			_log strf("idp, %s, jtype, %d \n", idp, jtype)
+			return "Id error"
+		}
+	}
 
 	result = "OK"
 	mcp_code = 0
@@ -131,15 +177,15 @@
 		return
 	}
 
-	mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+	mcp_text = "ÅEΩÀÇﬁÇÔøΩÅEΩ‹Å`"
 	if 5.0 <= hours & hours < 11.0 {
-		mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+		mcp_text = "ÅEΩÅEΩÅEΩÕÇÔøΩÅEΩ‹Å`"
 	}
 	if 11.0 <= hours & hours < 18.0 {
-		mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+		mcp_text = "ÅEΩÅEΩÅEΩÒÇΩÇ‹Å`"
 	}
 	if 18.0 <= hours & hours < 11.0 {
-		mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+		mcp_text = "ÅEΩŸÇÔøΩÅEΩÅEΩÅEΩ‹Å`"
 	}
 	gosub *res_call
 	return
@@ -161,15 +207,15 @@
 		return
 	}
 
-	mcp_text = "ÇÀÇﬁÇΩÇ‹Å`"
+	mcp_text = "ÅEΩÀÇﬁÇÔøΩÅEΩ‹Å`"
 	if 5.0 <= hours & hours < 11.0 {
-		mcp_text = "Ç®ÇÕÇΩÇ‹Å`"
+		mcp_text = "ÅEΩÅEΩÅEΩÕÇÔøΩÅEΩ‹Å`"
 	}
 	if 11.0 <= hours & hours < 18.0 {
-		mcp_text = "Ç±ÇÒÇΩÇ‹Å`"
+		mcp_text = "ÅEΩÅEΩÅEΩÒÇΩÇ‹Å`"
 	}
 	if 18.0 <= hours & hours < 11.0 {
-		mcp_text = "ÇŸÇµÇΩÇ‹Å`"
+		mcp_text = "ÅEΩŸÇÔøΩÅEΩÅEΩÅEΩ‹Å`"
 	}
 	gosub *res_call_fav_emoji
 	return
@@ -177,11 +223,11 @@
 
 *send
 	jsonout jt, in_pt
-	j_delnl jt
-	tailnl = jt + "\n"
-	nkfcnv u8b, tailnl, "wS"
-	len = strlen(u8b)
-	WriteFile stdout, varptr(u8b), len, varptr(wb), NULL
+	j_delnl jt, 1
+
+	len = strlen(jt)
+	wb = 0
+	WriteFile stdout, varptr(jt), len, varptr(wb), NULL
 	return
 
 
@@ -191,7 +237,7 @@
 	if mcp_code == EC_PARSE {
 		j_setnull rootp, "id"
 	} else {
-		if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+		if vartype(mcp_id) == 2 {
 			j_setstr rootp, "id", mcp_id
 		} else {
 			j_setd rootp, "id", mcp_id
@@ -201,70 +247,70 @@
 	j_setstr rootp, "error.message", mcp_message
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt
+
 	jsondelobj rootp
 	return
 
 *res_ini
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+	if vartype(mcp_id) == 2 {
 		j_setstr rootp, "id", mcp_id
 	} else {
 		j_setd rootp, "id", mcp_id
 	}
 	j_setstr rootp, "result.protocolVersion", "2025-06-18"
-	j_setb rootp, "result.capabilities.tools.listChanged", 1
+	obj = j_readyj(rootp, "result.capabilities.tools.listChanged._")
 	j_setstr rootp, "result.serverInfo.name", "hsp-tamane-server"
-	j_setstr rootp, "result.serverInfo.version", "0.1.1"
+	j_setstr rootp, "result.serverInfo.version", "0.2.0"
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt
+
 	jsondelobj rootp
 	return
 
 *res_list
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+	if vartype(mcp_id) == 2 {
 		j_setstr rootp, "id", mcp_id
 	} else {
 		j_setd rootp, "id", mcp_id
 	}
 
 	j_setstr rootp, "result.tools.0.name", "get_greeting"
-	j_setstr rootp, "result.tools.0.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃéûçèÇ≤Ç∆ÇÃà•éAÇéÊìæÇ∑ÇÈ"
+	j_setstr rootp, "result.tools.0.description", "éÔàÔ"
 
 	osp = j_readyj(rootp, "result.tools.0.outputSchema._")
 	j_setstr osp, "type", "object"
 	j_setstr osp, "properties.text.type", "string"
-	j_setstr osp, "properties.text.description", "à•éA"
+	j_setstr osp, "properties.text.description", "A"
 	j_setstr osp, "required.0", "text"
 
 	isp = j_readyj(rootp, "result.tools.0.inputSchema._")
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
-	j_setstr isp, "properties.hours.description", "éûçèÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "properties.hours.description", "ÅEéÔ"
 	j_setstr isp, "required.0", "hours"
 
 	// 
 	j_setstr rootp, "result.tools.1.name", "get_fav_emoji"
-	j_setstr rootp, "result.tools.1.description", "ÇΩÇ‹ÇÀÇøÇ·ÇÒÇÃÇ®ãCÇ…ì¸ÇËäGï∂éöÇéÊìæÇ∑ÇÈ"
+	j_setstr rootp, "result.tools.1.description", "ìÔøΩÅEΩÅEΩ"
 
 	osp = j_readyj(rootp, "result.tools.1.outputSchema._")
 	j_setstr osp, "type", "object"
 	j_setstr osp, "properties.emoji.type", "string"
-	j_setstr osp, "properties.emoji.description", "äGï∂éö"
+	j_setstr osp, "properties.emoji.description", "ΩÅEΩÅEΩÅEΩ"
 	j_setstr osp, "required.1", "emoji"
 
 	isp = j_readyj(rootp, "result.tools.1.inputSchema._")
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
-	j_setstr isp, "properties.hours.description", "éûçèÇÃéûÇéwíËÇ∑ÇÈ"
+	j_setstr isp, "properties.hours.description", "ÅEΩÅE"
 	j_setstr isp, "required.1", "hours"
 
 	repeat 2
@@ -284,7 +330,7 @@
 *res_call
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+	if vartype(mcp_id) == 2 {
 		j_setstr rootp, "id", mcp_id
 	} else {
 		j_setd rootp, "id", mcp_id
@@ -299,16 +345,16 @@
 	j_toarr rootp, "result.content"
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt
+
 	jsondelobj rootp
 	return
 
 *res_call_fav_emoji
 	jsonnewobj rootp
 	j_setstr rootp, "jsonrpc", "2.0"
-	if vartype(mcp_id) == 2 { // ï∂éöóÒå^
+	if vartype(mcp_id) == 2 {
 		j_setstr rootp, "id", mcp_id
 	} else {
 		j_setd rootp, "id", mcp_id
@@ -326,8 +372,8 @@
 	j_toarr rootp, "result.content"
 	in_pt = rootp
 	gosub *send
-	if DEBUG & 1 {
-		dialog jt + "\n"
-	}
+
+	_log jt
+
 	jsondelobj rootp
 	return
