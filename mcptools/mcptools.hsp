@@ -60,6 +60,11 @@
 
 	_log strf("hsp mcp tools \n")
 
+	tool_num = 2
+	sdim names, 260, tool_num
+	names(0) = "get_greeting"
+	names(1) = "get_fav_emoji"
+
 	mcp_blob = ""
 	repeat
 		readbuf = ""
@@ -144,17 +149,26 @@
 			jsongets mcp_params_name, "name", namesp
 		}
 
-		if mcp_params_name == "get_greeting" {
+		idx = -1
+		repeat tool_num
+			if mcp_params_name == names(cnt) {
+				idx = cnt
+				break
+			}
+		loop
+		if idx < 0 {
+			mcp_code = EC_METHOD
+			mcp_message = "Invalid params name"
+			gosub *res_err
+			return
+		}
+
+		if mcp_params_name == names(0) {
 			goto *act_greeting
 		}
-		if mcp_params_name == "get_fav_emoji" {
+		if mcp_params_name == names(1) {
 			goto *act_fav_emoji
-		}		
-		
-		mcp_code = EC_METHOD
-		mcp_message = "Invalid params name"
-		gosub *res_err
-		return	
+		}
 	}
 	mcp_code = EC_METHOD
 	mcp_message = "Invalid method"
@@ -179,13 +193,13 @@
 
 	mcp_text = "E½Ë‚Þ‚ï¿½E½Ü`"
 	if 5.0 <= hours & hours < 11.0 {
-		mcp_text = "E½E½E½Í‚ï¿½E½Ü`"
+		mcp_text = "`"
 	}
 	if 11.0 <= hours & hours < 18.0 {
-		mcp_text = "E½E½E½ñ‚½‚Ü`"
+		mcp_text = "‚Ü`"
 	}
 	if 18.0 <= hours & hours < 11.0 {
-		mcp_text = "E½Ù‚ï¿½E½E½E½Ü`"
+		mcp_text = "`"
 	}
 	gosub *res_call
 	return
@@ -207,15 +221,15 @@
 		return
 	}
 
-	mcp_text = "E½Ë‚Þ‚ï¿½E½Ü`"
+	mcp_text = "`"
 	if 5.0 <= hours & hours < 11.0 {
-		mcp_text = "E½E½E½Í‚ï¿½E½Ü`"
+		mcp_text = "‚ï`"
 	}
 	if 11.0 <= hours & hours < 18.0 {
-		mcp_text = "E½E½E½ñ‚½‚Ü`"
+		mcp_text = "‚Ü`"
 	}
 	if 18.0 <= hours & hours < 11.0 {
-		mcp_text = "E½Ù‚ï¿½E½E½E½Ü`"
+		mcp_text = "`"
 	}
 	gosub *res_call_fav_emoji
 	return
