@@ -135,7 +135,7 @@
 		gosub *res_ini
 		return
 	}
-	if mcp_method == "notification/initialized" {
+	if mcp_method == "notifications/initialized" {
 		return // 無視する
 	}
 	if mcp_method == "tools/list" {
@@ -213,7 +213,7 @@
 		if stat == 1 {
 			p = 0
 		}
-			}
+	}
 	if p == 0 {
 		mcp_code = EC_INVALIDPARAM
 		mcp_message = "Invalid param"
@@ -221,16 +221,21 @@
 		return
 	}
 
-	mcp_text = "～"
-	if 5.0 <= hours & hours < 11.0 {
-		mcp_text = "ゑ～"
-	}
-	if 11.0 <= hours & hours < 18.0 {
-		mcp_text = "ま～"
-	}
-	if 18.0 <= hours & hours < 11.0 {
-		mcp_text = "～"
-	}
+	jt = "{}"
+	jsonopen stpt, jt
+
+	onept = j_readyj(stpt, "structuredContent.0._")
+	j_setstr onept, "name", "foo"
+	j_setstr onept, "emoji", "bar"
+
+	jsonout jt, onept
+
+	
+	j_setstr stpt, "", jt
+
+	j_toarr stpt, "structuredContent"	
+	j_toarr stpt, "content"
+
 	gosub *res_call_fav_emoji
 	return
 
@@ -296,36 +301,38 @@
 		j_setd rootp, "id", mcp_id
 	}
 
-	j_setstr rootp, "result.tools.0.name", "get_greeting"
-	j_setstr rootp, "result.tools.0.description", "趣茨"
+	i = 0
+	j_setstr rootp, strf("result.tools.%d.name", i), "get_greeting"
+	j_setstr rootp, strf("result.tools.%d.description", i), "趣茨"
 
-	osp = j_readyj(rootp, "result.tools.0.outputSchema._")
+	osp = j_readyj(rootp, strf("result.tools.%d.outputSchema._", i))
 	j_setstr osp, "type", "object"
 	j_setstr osp, "properties.text.type", "string"
 	j_setstr osp, "properties.text.description", "A"
-	j_setstr osp, "required.0", "text"
+	j_setstr osp, strf("required.%d", i), "text"
 
-	isp = j_readyj(rootp, "result.tools.0.inputSchema._")
+	isp = j_readyj(rootp, strf("result.tools.%d.inputSchema._", i))
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
-	j_setstr isp, "properties.hours.description", "・趣"
-	j_setstr isp, "required.0", "hours"
+	j_setstr isp, "properties.hours.description", "イラストはIxy, らぐほのえりか"
+	j_setstr isp, strf("required.%d", i), "hours"
 
 	// 
-	j_setstr rootp, "result.tools.1.name", "get_fav_emoji"
-	j_setstr rootp, "result.tools.1.description", "難ｿｽ・ｽ・ｽ"
+	i = 1
+	j_setstr rootp, strf("result.tools.%d.name", i), "get_fav_emoji"
+	j_setstr rootp, strf("result.tools.%d.description", i), "好きな絵文字を返す"
 
-	osp = j_readyj(rootp, "result.tools.1.outputSchema._")
+	osp = j_readyj(rootp, strf("result.tools.%d.outputSchema._", i)
 	j_setstr osp, "type", "object"
 	j_setstr osp, "properties.emoji.type", "string"
-	j_setstr osp, "properties.emoji.description", "ｽ・ｽ・ｽ・ｽ"
-	j_setstr osp, "required.1", "emoji"
+	j_setstr osp, "properties.emoji.description", "ｽ"
+	j_setstr osp, strf("required.%d", i), "emoji"
 
-	isp = j_readyj(rootp, "result.tools.1.inputSchema._")
+	isp = j_readyj(rootp, strf("result.tools.%d.inputSchema._", i))
 	j_setstr isp, "type", "object"
 	j_setstr isp, "properties.hours.type", "number"
-	j_setstr isp, "properties.hours.description", "・ｽ・"
-	j_setstr isp, "required.1", "hours"
+	j_setstr isp, "properties.hours.description", "・"
+	j_setstr isp, strf("required.%d", i) "hours"
 
 	repeat 2
 		j_toarr rootp, strf("result.tools.%d.outputSchema,required", cnt)
