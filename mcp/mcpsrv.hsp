@@ -127,7 +127,7 @@
 		if 11.0 <= hours & hours < 18.0 {
 			mcp_text = "‚±‚ñ‚½‚Ü`"
 		}
-		if 18.0 <= hours & hours < 11.0 {
+		if 18.0 <= hours & hours < 23.0 {
 			mcp_text = "‚Ù‚µ‚½‚Ü`"
 		}
 		gosub *res_call
