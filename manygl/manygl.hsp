@@ -34,6 +34,11 @@
 #enum WID_SHOOT16
 #enum WID_MENUBACK
 #enum WID_EFFNUM
+#enum WID_CYRL_RED = 20
+#enum WID_CYRL_GREEN
+#enum WID_CYRL_BLUE
+
+
 
 #const BG_MENU 15
 
@@ -317,18 +322,21 @@
 	// スライム
 	shootrate = 0 // 発砲無し
 	chno = CHR_MON_0 + 16 * 4
-		//chno = CHR_MONSTER1 + rnd(4) * 2
+
+	// NOTE: キリル表示したい
+	chno = CHR_MON_0 + rnd(128)
 
 	frnext = 10
-	sp100 = 50
+	sp100 = 50 // 移動スピードパーセント。スライムは 50
+	
 	df_emode 14, chno, shootrate, frnext, sp100
-	x = 32
-	y = 32
+	x = 32 * 2
+	y = 32 * 2
 	if px < _mappxw / 2 {
-		x = _mappxw - 48
+		x = _mappxw - 48 * 2
 	}
 	if py < _mappxh / 2 {
-		y = _mappxh - 48
+		y = _mappxh - 48 * 2
 	}
 	df_addenemy x,y, DIR_RIGHT / 2, sp100, 0
 	spno = _dotfw_cursp
@@ -1157,16 +1165,30 @@
 	//df_paction *onmapitem, PACTION_MAPITEM
 
 // モンスター
-	celload "mondot.png", WID_MON32
+	//celload "mondot.png", WID_MON32
+	celload "cyrl_red.png", WID_MON32
 	es_size 32, 32, 50
 
 	ch = CHR_MON_0
-	repeat 16
-		x = (cnt \ 2) * 32 * 4
-		y = (cnt / 2) * 32
-		es_patanim ch, 4, x,y, frnum, WID_MON32
-		ch += 4
+	//repeat 16
+	repeat 16*16/2
+		x = (cnt \ 8) * 32 * 2
+		y = (cnt / 8) * 32
+		es_patanim ch, 2, x,y, frnum, WID_MON32
+		ch += 2
 	loop
+
+/*
+// モンスター キリル
+	celload "cyrl_red.png", WID_CYRL_RED
+	es_size, 32, 32, 50
+	repeat 16
+		px = (cnt \ 8) * 32 * 2
+		py = (cnt / 8) * 32
+		es_patanim ch, 2, px,py, frnum, WID_CYRL_RED
+		ch += 2
+	loop
+*/
 
 	celload "chip16white.png", WID_MON16
 	es_size 16, 16, 50
@@ -1176,6 +1198,7 @@
 		es_patanim ch, 4, px,py, frnum, WID_MON16
 		ch += 4
 	loop
+
 
 // ショット
 	celload "shootdot16.png", WID_SHOOT16
