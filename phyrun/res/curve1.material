@@ -1,0 +1,40 @@
+material colored {
+  u_worldViewProjectionMatrix = WORLD_VIEW_PROJECTION_MATRIX
+  technique {
+    pass {
+      vertexShader = res/shaders/colored.vert
+      fragmentShader = res/shaders/colored.frag
+    }
+  }
+}
+
+material textured {
+  u_worldViewProjectionMatrix = WORLD_VIEW_PROJECTION_MATRIX
+  technique {
+    pass {
+      vertexShader = res/shaders/textured.vert
+      fragmentShader = res/shaders/textured.frag
+    }
+  }
+}
+
+material material0: colored {
+  u_diffuseColor = 1.0, 0.5, 0.1, 1
+  renderState {
+    cullFace = true
+    depthTest = true
+    blend = true
+    blendSrc = SRC_ALPHA
+    blendDst = ONE_MINUS_SRC_ALPHA
+  }
+
+  u_ambientColor = 0.16536, 0.16536, 0.16536
+  u_specularExponent = 6.31179
+
+  technique {
+    pass {
+      defines = SPECULAR;DIRECTIONAL_LIGHT_COUNT 1
+    }
+  }
+}
+

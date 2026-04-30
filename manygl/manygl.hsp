@@ -90,7 +90,7 @@
 	df_config strf("ps1 Z200 %s", vpad) // 320x240
 	df_reset
 
-	title "kei's monster attack typeB 0.1.0"
+	title "kei's monster attack typeC 0.1.0"
 	_pxw = 320 // 画面ピクセル幅
 	_pxh = 240
 	_textw = _pxw / 8
@@ -323,7 +323,7 @@
 	shootrate = 0 // 発砲無し
 	chno = CHR_MON_0 + 16 * 4
 
-	// NOTE: キリル表示したい
+	// NOTE: キリル表示したい。画像はaviutl2のスクリプトで実装した
 	chno = CHR_MON_0 + rnd(128)
 
 	frnext = 10
@@ -1174,7 +1174,7 @@
 	repeat 16*16/2
 		x = (cnt \ 8) * 32 * 2
 		y = (cnt / 8) * 32
-		es_patanim ch, 2, x,y, frnum, WID_MON32
+		es_patanim ch, 2, x,y, frnum * 2, WID_MON32
 		ch += 2
 	loop
 
