@@ -1,0 +1,161 @@
+// @file joy.hsp
+// @date 2016-10-29
+// for HSP3.5β4 HGIMG4
+
+// Copyright (C) 2016 Usagi
+// Licensed under the BSD 3-Clause License.
+// https://opensource.org/licenses/BSD-3-Clause
+// 三条項修正BSDライセンスです。
+
+#include "winmm.as"
+
+
+#module
+
+#const global JOYERR_NOERROR 0
+#const global JOYERR_BASE 160
+#const global JOYERR_UNPLUGGED JOYERR_BASE+7
+
+#const global JOY_RETURNX 1
+#const global JOY_RETURNY 2
+#const global JOY_RETURNZ 4
+#const global JOY_RETURNR 8
+#const global JOY_RETURNU 0x10
+#const global JOY_RETURNV 0x20
+#const global JOY_RETURNPOV 0x40
+#const global JOY_RETURNBUTTONS 0x80
+
+#const global JOY_RETURNRAWDATA 0x100
+#const global JOY_RETURNPOVCTS 0x200
+#const global JOY_RETURNCENTERED 0x400
+
+#const global JOY_RETURNALL 0xFF
+
+#const global JOY_BUTTON1 1
+#const global JOY_BUTTON2 2
+#const global JOY_BUTTON3 4
+#const global JOY_BUTTON4 8
+#const global JOY_BUTTON5 0x10
+#const global JOY_BUTTON6 0x20
+#const global JOY_BUTTON7 0x40
+#const global JOY_BUTTON8 0x80
+#const global JOY_BUTTON9 0x100
+#const global JOY_BUTTON10 0x200
+#const global JOY_BUTTON11 0x400
+#const global JOY_BUTTON12 0x800
+#const global JOY_BUTTON13 0x1000
+#const global JOY_BUTTON14 0x2000
+#const global JOY_BUTTON15 0x4000
+#const global JOY_BUTTON16 0x8000
+
+#const global JOYCAPS_HASZ 1
+#const global JOYCAPS_HASR 2
+#const global JOYCAPS_HASU 4
+#const global JOYCAPS_HASV 8
+#const global JOYCAPS_HASPOV 0x10
+#const global JOYCAPS_POV4DIR 0x20
+#const global JOYCAPS_POVCTS 0x40
+
+#const global JOY_POVCENTERED -1
+#const global JOY_POVFORWARD 0
+#const global JOY_POVRIGHT 9000
+#const global JOY_POVBACKWARD 18000
+#const global JOY_POVLEFT 27000
+
+#const JOYCAPSA_BYTE (20*4+32+32+260)
+#const JOYINFOEX_BYTE 52
+
+
+#defcfunc _getjoy int id, array out_buf, local lresult
+// 指定ID(0～15)のパッド情報を取得する。6個以上の double 配列を渡すこと
+// 戻りは非負が成功。負だと接続されていないかエラー
+
+	dim lcap, JOYCAPSA_BYTE/4+1
+	joyGetDevCaps id,varptr(lcap),JOYCAPSA_BYTE
+	lresult = stat
+	if lresult == JOYERR_UNPLUGGED {
+		return -1
+	}
+	if lresult != JOYERR_NOERROR {
+		return -2
+	}
+	
+	lxmin = double(lcap.9)
+	lxmax = double(lcap.10)
+	lymin = double(lcap.11)
+	lymax = double(lcap.12)
+	lzmin = double(lcap.13)
+	lzmax = double(lcap.14)
+
+	//but_num = lcap.15
+
+	lrmin = double(lcap.18)
+	lrmax = double(lcap.19)
+
+	lcaps = lcap.24
+
+
+	dim lpos, JOYINFOEX_BYTE/4+1
+	lpos.0 = JOYINFOEX_BYTE
+	lpos.1 = JOY_RETURNALL
+	joyGetPosEx id,varptr(lpos)
+	lresult = stat
+	if lresult == JOYERR_UNPLUGGED {
+		return -1
+	}
+	if lresult != JOYERR_NOERROR {
+		return -3
+	}
+
+	lx = double(lpos.2)
+	ly = double(lpos.3)
+	lz = double(lpos.4)
+	lr = double(lpos.5)
+	but_bits = lpos.8
+	pov = lpos.10
+
+// ボタンはそのまま格納
+	out_buf.0 = double(but_bits)
+
+// pov
+	if lcaps & JOYCAPS_HASPOV {
+		out_buf.1 = double((pov << 16) >> 16)
+	} else {
+		out_buf.1 = double(JOY_POVCENTERED)
+	}
+
+// 方向の判定 axes
+	lcenter = (lxmin + lxmax) * 0.5
+	lrange = (lxmax - lxmin) * 0.5
+	if lrange > 0.0 {
+		out_buf.2 = (lx - lcenter) / lrange
+	} else {
+		out_buf.2 = 0.0
+	}
+
+	lcenter = (lymin + lymax) * 0.5
+	lrange = (lymax - lymin) * 0.5
+	if lrange > 0.0 {
+		out_buf.3 = (ly - lcenter) / lrange
+	} else {
+		out_buf.3 = 0.0
+	}
+	
+	lcenter = (lzmin + lzmax) * 0.5
+	lrange = (lzmax - lzmin) * 0.5
+	if lrange > 0.0 {
+		out_buf.4 = (lz - lcenter) / lrange
+	} else {
+		out_buf.4 = 0.0
+	}
+
+	lcenter = (lrmin + lrmax) * 0.5
+	lrange = (lrmax - lrmin) * 0.5
+	if lrange > 0.0 {
+		out_buf.5 = (lr - lcenter) / lrange
+	} else {
+		out_buf.5 = 0.0
+	}
+
+	return 0
+#global

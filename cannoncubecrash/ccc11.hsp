@@ -1,0 +1,938 @@
+// @file ccc11.hsp
+// @date 2016-10-29
+// for HSP3.5β4 HGIMG4
+
+// Copyright (C) 2016 Usagi
+// Licensed under the BSD 3-Clause License.
+// https://opensource.org/licenses/BSD-3-Clause
+// 三条項修正BSDライセンスです。
+
+#packopt name "cannoncubecrash"
+#packopt runtime "hsp3hg"
+#packopt xsize 800
+#packopt ysize 600
+
+#include "hgimg4.as"
+
+#include "kernel32.as"
+
+// 定義するとパッド判定も行う
+#define _USEPAD
+
+#ifdef _USEPAD
+#include "joy.hsp"
+#endif
+
+// 0: リリース版、1: 開発中、2: 開発中(追加操作可能)
+#const DEV 0
+
+#const REPONG 1.0
+
+#const STRBUF 4096
+
+#const EX 0
+#const EY 1
+#const EZ 2
+#const ENX 3
+#const ENY 4
+#const ENZ 5
+#const EU 6
+#const EV 7
+
+// 移動減衰
+#const EMD 6
+// 回転減衰
+#const ERD 7
+// 重量
+#const EWT 8
+
+#const EDX 6
+#const EDY 7
+#const EDZ 8
+
+#const EFRIC 9
+#const EPONG 10
+#const ESIZE1 11
+
+#const ESIZE2 12
+#const ESIZE3 13
+
+// 追加設定
+#const EADD 14
+
+#const EMAX 15
+
+#const BIT_PLAY 0x1
+#const BIT_CLEAR 0x2
+
+#const JOY_ABS 0.6
+
+// 押し続け何回分で1押しにするか
+#const KEY_DOWNRATE 15
+
+// stick用
+#const ST_L 1
+#const ST_U 2
+#const ST_R 4
+#const ST_D 8
+#const ST_SPC 16
+#const ST_ENTER 32
+#const ST_CTRL 64
+#const ST_ESC 128
+#const ST_LB 256
+#const ST_RB 512
+#const ST_TAB 1024
+
+
+// 2.0四方を基準サイズとする(not 1.0)
+
+	gosub *init01
+	goto *select01
+
+
+*main01
+	gosub *readystage01
+
+	gpload id_guide,"res/wirebox", "n0"
+
+	gpload id,"res/grid", "n0"
+	setscale id, 2,2,2
+
+	if DEV >= 1 {
+		gpload id,"res/grid", "n0"
+		setscale id, 2,2,2
+		setang id, M_PI*0.5,0,0
+
+		gpload id,"res/axis", "n0"
+	}
+
+// ライトの向き
+	setang GPOBJ_LIGHT, -M_PI*0.125, -M_PI*0.1, 0
+	
+	is_shooting = 0
+
+
+*main05
+// メインループの先頭
+	getreq ts, SYSREQ_TIMER
+	getreq fps, SYSREQ_FPS
+
+// 入力を得る
+	is_contidir = 1
+	gosub *input01
+
+	if key & ST_ESC { // GIVE UP
+		goto *clear07
+	}
+
+	gosub *cam01
+
+	if 1 {
+		if key & ST_L {
+			a_head--
+		}
+		if key & ST_R {
+			a_head++
+		}
+		if key & ST_U {
+			a_pitch++
+		}
+		if key & ST_D {
+			a_pitch--
+		}
+		if key & ST_CTRL {
+			a_head = 0
+			a_pitch = 0
+		}
+
+		a_pitch = limit(a_pitch, -90,90)
+		a_head = (a_head \ 360)
+
+		ang_head = deg2rad(a_head)
+		ang_pitch = deg2rad(a_pitch)
+		rr = cos(ang_pitch)
+		dx = rr * sin(ang_head)
+		dy = sin(ang_pitch)
+		dz = - rr * cos(ang_head)
+	}
+
+	if is_shooting == 0 {
+		getpos id_pong, x,y,z
+		k = sqrt(2.0) * 2.0
+		x += dx * k
+		y += dy * k
+		z += dz * k
+		setpos id_guide, x,y,z
+	}
+
+	if key & ST_SPC {
+			if box_num >= 1 {
+				box_num--
+				
+				is_shooting = 1
+				setobjmode id_guide, OBJ_HIDE, 0
+
+				power = 1600.0
+				gppapply id_pong, GPPAPPLY_IMPULSE, power*dx, power*dy, power*dz
+			}
+	}
+	
+	if clear_ts {
+		flag = 0
+		if DEV >= 2 {
+			if key & ST_LB {
+				flag = 1
+			}
+		}
+
+		if key & ST_SPC {
+			clear_ts = ts - 2600
+		}
+		if ts - clear_ts >= 3000 {
+			flag = 1
+		}
+
+		if flag {
+			sel_stage = cur_stage + 1
+
+			clear_count = 0
+			repeat 101
+				if clears.cnt & BIT_CLEAR {
+					clear_count++
+				}
+			loop
+			if clear_count >= max_stage & status_congra <= 1 {
+				goto *clear09
+			}
+
+			goto *clear07
+		}
+
+	} else {
+
+		if DEV >= 2 {
+			if key & ST_LB {
+				goto *clear01
+			}
+		}
+
+		exist_num = 0
+		target_num = 0
+		target_clear_num = 0
+		
+		repeat 1024
+			id = cnt
+			objexist id
+			if stat < 0 {
+				continue
+			}
+			exist_num++
+
+			getwork2 id, x,y,z
+			attr = int(x)
+			if attr == 2 {
+				target_num++
+				getpos id, x,y,z
+				if y < 0.0 {
+					target_clear_num++
+				}
+			}
+		loop
+
+		if target_num >= 1 {
+			if is_all {
+				if target_clear_num >= target_num {
+					goto *clear01
+				}
+			} else {
+				if target_clear_num >= 1 {
+					goto *clear01
+				}
+			}
+		}
+	}
+
+
+	redraw 0
+	gpdraw
+
+	color 255,255,255
+	font "",32
+	pos 16,32
+	mes strf("STAGE %d: ",cur_stage) + stage_name
+
+	color 255,0x99,0x99
+	s = "ONE"
+	if is_all {
+		color 255,0,0
+		s = "ALL"
+	}
+	mes strf("TARGET: %d",target_clear_num) + strf("/%d", target_num) + " (" + s + ")"
+
+	if DEV >= 1 {
+		color 255,255,255
+		mes "HGIMG4 sample," + fps + "fps," + ts + "," + exist_num
+		mes strf("%d",a_head) + strf(",%d",a_pitch)
+	}
+
+	if clear_ts {
+		s = "CLEAR !"
+		font "",48
+		color 153,0,0
+		pos 302,122
+		mes s
+		
+		color 255,0,0
+		pos 300,120
+		mes s
+	}
+
+	redraw 1
+	await 1000/60
+
+	frame++
+	goto *main05
+
+
+*select01
+// ステージ範囲を決める システム上は 100
+	sdim note,STRBUF
+	notesel note
+	sdim buf,STRBUF
+	sdim name_stage,STRBUF,1
+	name_stage.0 = ""
+	
+	max_stage = 0
+	count = 0
+
+	repeat 100,1
+		stage_file = "" + strf("stage/s%03d.txt", cnt)
+		exist stage_file
+		tail = strsize
+		if tail <= 0 {
+			break
+		}
+		max_stage = cnt
+
+		if clears.cnt & BIT_CLEAR {
+			count++
+		}
+
+		noteload stage_file
+		noteget buf
+		split buf,",",ss
+		s = ""
+		if length(ss) >= 2 {
+			s = ss.1
+		}
+		name_stage.cnt = s	
+	loop
+
+	if count >= max_stage {
+		status_congra = 2
+	}
+
+
+*select05
+// 入力を得る
+	is_contidir = 0
+	gosub *input01
+
+	if key & ST_SPC {
+		clears.sel_stage |= BIT_PLAY
+		cur_stage = sel_stage
+		gosub *save01
+		goto *main01
+	}
+
+	if 1 {
+		if key & ST_L {
+			sel_stage--
+			if sel_stage < 1 {
+				sel_stage = max_stage
+			}
+		}
+		if key & ST_R {
+			sel_stage++
+			if sel_stage > max_stage {
+				sel_stage = 1
+			}
+		}
+		if key & ST_U {
+			sel_stage -= 10
+		}
+		if key & ST_D {
+			sel_stage += 10
+		}
+	}
+	
+	sel_stage = limit(sel_stage, 1,max_stage)
+
+	redraw 0
+	gpdraw
+
+	s = "CANNON CUBE CRASH"
+	font "",52
+
+	pos 102,102
+	color 204,102,0
+	mes s
+
+	pos 100,100
+	color 255,153,0
+	mes s
+
+	pos 280, 200
+	font "",32
+	color 255,255,255
+	mes "SELECT STAGE"
+
+	color 255,0,0
+	pos 200
+	
+	clear_mark = " "
+	if clears.sel_stage & BIT_CLEAR {
+		clear_mark = "*"
+	}
+	mes clear_mark + strf("STAGE%3d: ", sel_stage) + name_stage.sel_stage
+
+	mes ""
+	color 0xCC,0xCC,0xCC
+	if status_congra == 2 {
+		color 0xFF,0xFF,0xCC
+	}
+	pos 150
+	mes "PUSH SPACE KEY FOR START !"
+	
+	if DEV >= 1 {
+		mes strf("%d,", ginfo(26)) + ginfo(27)
+	}
+
+	redraw 1
+	await 1000/60
+	goto *select05
+
+
+*clear01
+// ステージのクリア条件を満たしたとき
+	
+	clears.cur_stage |= BIT_CLEAR
+	gosub *save01
+
+	getreq clear_ts, SYSREQ_TIMER
+	goto *main05
+
+	
+*clear07
+	// GIVE UPもこっち
+	gosub *releasestage01
+	goto *select01
+
+
+*clear09
+	gosub *input01
+	
+	if key & ST_SPC {
+		status_congra = 2
+
+		gosub *releasestage01
+		goto *select01
+	}
+
+	redraw 0
+	gpdraw
+	
+	pos 100,100
+	font "",48
+	
+	getreq ts, SYSREQ_TIMER
+	v = abs((ts \ 2000) - 1000) * 255 / 1000
+	r = 255
+	g = v
+	b = 0
+	color r,g,b
+	mes "CONGRATULATIONS !!!"
+
+	mes ""
+	font "",32
+	pos 250
+	color 0xCC,0xCC,0xCC
+	mes "PUSH SPACE KEY"
+
+	await 1000/60
+	goto *clear09
+
+
+*init01
+	title "Cannon Cube Crash ver.1.1"
+	setreq SYSREQ_VSYNC,1
+	gpreset
+	setcls CLSMODE_SOLID, $202020
+	
+	redraw 0
+	gpdraw
+	pos 250,300
+	font "",32
+	color 255,255,255
+	mes "CANNON CUBE CRASH"
+	redraw 1
+
+// キー押し下げカウント
+	dim downs,5
+
+	//setcolor GPOBJ_LIGHT, 1,0.5,0.5
+	// dirとはいうが環境光らしい
+//	setdir GPOBJ_LIGHT, 0.2,0.2,0.2
+
+	sel_stage = 1
+	cur_stage = 1
+
+	status_congra = 0
+
+	save_file = dirinfo(1) + "/save.ini"
+	GetPrivateProfileInt "save","selstage",sel_stage,save_file
+	sel_stage = stat
+	GetPrivateProfileInt "save","curstage",cur_stage,save_file
+	cur_stage = stat
+
+	dim clears,101
+	sdim buf,260
+	GetPrivateProfileString "save","clear", varptr(buf),varptr(buf),256,save_file
+
+	n = strlen(buf)
+	repeat n
+		clears.cnt = int(strmid(buf,cnt,1))
+	loop
+
+
+	//mmload "res/bgm5.mid",0,1
+	//mmplay 0
+	
+	return
+
+
+*save01
+	s = strf("%d", sel_stage)
+	WritePrivateProfileString "save","selstage",varptr(s),save_file
+	s = strf("%d", cur_stage)
+	WritePrivateProfileString "save","curstage",varptr(s),save_file
+
+
+	s = ""
+	repeat 101
+		s += "" + clears.cnt
+	loop
+	WritePrivateProfileString "save","clear",varptr(s),save_file
+
+	return
+
+
+*readystage01
+	dirsep = ""
+	stage_file = dirsep + strf("stage/s%03d.txt", cur_stage)
+	gosub *readstage01
+
+	
+	frame = 0
+	clear_ts = 0
+
+// 向き
+	a_head = 0
+	a_pitch = 0
+
+// カメラ用パラメータ
+	c_head = - M_PI * 0.75
+	c_pitch = - M_PI * 0.1
+	c_x = mousex
+	c_y = mousey
+	c_preMov = 1
+	c_preRot = 1
+	c_dist = 50.0
+	return
+
+
+*releasestage01
+	// TODO: 今はこれしかわからない
+	gpreset 0
+	return
+
+
+*cam01
+	c_dist = limitf(c_dist + double(mw) * 0.01, 1.0, 100.0)
+	
+	fov = 45.0
+	height = ginfo(27)
+	focal = double(height) * 0.5 / tan(deg2rad(fov)*0.5)
+	tr_rate = 1.0 / focal * c_dist
+
+	
+	lbutton = key & ST_LB
+	rbutton = key & ST_RB
+	
+	head = c_head
+	pitch = c_pitch
+
+	cx0 = cs.EX
+	cy0 = cs.EY
+	cz0 = cs.EZ
+
+	if c_preRot {
+		dx = double(mx - c_x)
+		dy = double(my - c_y)
+
+		head = c_head - dx * 0.01
+		pitch = limitf(c_pitch - dy * 0.01, -M_PI*0.5 + 0.001, M_PI*0.5 - 0.001)
+		
+		if rbutton {
+			// 押したまま
+		} else { // 今離した
+			c_head = head
+			c_pitch = pitch
+		}
+	} else {
+		if rbutton { // 今押した
+			c_x = mx
+			c_y = my
+		}
+	}
+
+	if c_preMov {
+		dx = double(mx - c_x)
+		dy = double(my - c_y)
+
+		rhand.0 = sin(head - M_PI*0.5), 0.0, cos(head - M_PI*0.5)
+		rr = sin(pitch)
+		up.0 = rr * sin(head + M_PI), cos(pitch), rr * cos(head + M_PI)
+
+		cx0 -= (rhand.EX * dx - up.EX * dy) * tr_rate
+		cy0 -= (rhand.EY * dx - up.EY * dy) * tr_rate
+		cz0 -= (rhand.EZ * dx - up.EZ * dy) * tr_rate
+		
+
+		if lbutton {
+			// 押したまま
+		} else { // 今離した
+			cs.EX = cx0
+			cs.EY = cy0
+			cs.EZ = cz0
+		}
+	} else {
+		if lbutton { // 今押した
+			c_x = mx
+			c_y = my
+		}
+	}
+
+
+// 変換して算出
+	if (c_preMov != 0) | (c_preRot != 0) {
+		rr = cos(pitch)
+
+		dx = rr * sin(head)
+		dy = sin(pitch)
+		dz = rr * cos(head)
+		x = cx0 - c_dist * dx
+		y = cy0 - c_dist * dy
+		z = cz0 - c_dist * dz
+
+		setpos GPOBJ_CAMERA, x,y,z
+		gplookat GPOBJ_CAMERA, x + c_dist * dx, y + c_dist * dy, z + c_dist * dz
+	}
+	
+	c_preMov = lbutton
+	c_preRot = rbutton
+	return
+
+
+*input01
+// マウスとキーボード
+	mx = mousex
+	my = mousey
+	mw = mousew
+	
+	key = 0
+	stick key, ST_LB | ST_RB
+	
+// stick以外のキー
+	ks.0 = 'A','W','D','S', 'C'
+	bits.0 = ST_L, ST_U, ST_R, ST_D, ST_CTRL
+	repeat length(ks)
+		getkey gk, ks.cnt
+		if gk {
+			key |= bits.cnt
+		}
+	loop
+
+// パッド情報から key を加工
+#ifdef _USEPAD
+	repeat 16
+		ddim jbuf, 6
+		result = _getjoy(cnt, jbuf)
+		if result < 0 {
+			continue
+		}
+	
+// 方向キー
+		if jbuf.2 < -JOY_ABS {
+			key |= ST_L
+		}
+		if jbuf.2 > JOY_ABS {
+			key |= ST_R
+		}
+		if jbuf.3 < -JOY_ABS {
+			key |= ST_U
+		}
+		if jbuf.3 > JOY_ABS {
+			key |= ST_D
+		}
+	
+// POV
+		pov = int(jbuf.1)
+		if pov >= 0 {
+			if pov == JOY_POVFORWARD {
+				key |= ST_U
+			}
+			if pov == JOY_POVRIGHT {
+				key |= ST_R
+			}
+			if pov == JOY_POVBACKWARD {
+				key |= ST_D
+			}
+			if pov == JOY_POVLEFT {
+				key |= ST_L
+			}
+		}
+	
+// ボタンビットの読み替え
+		but_bits = int(jbuf.0)
+		if but_bits & JOY_BUTTON1 {
+			key |= ST_SPC
+		}
+		if but_bits & JOY_BUTTON2 {
+			key |= ST_ESC
+		}
+		if but_bits & JOY_BUTTON3 {
+			key |= ST_CTRL
+		}
+	loop
+#endif
+
+// カウントによるオンオフ加工
+	bits.0 = ST_L, ST_U, ST_R, ST_D, ST_SPC
+	repeat 5
+		if (cnt < 4) & (is_contidir != 0) {
+			downs.cnt = 0
+			continue
+		}
+	
+		if key & bits.cnt {
+			downs.cnt++
+			if (downs.cnt \ KEY_DOWNRATE) != 1 {
+				key ^= bits.cnt
+			}
+		} else {
+			downs.cnt = 0
+		}
+	loop
+	
+	return
+
+
+*readstage01
+	box_num = 1
+// オールがデフォルト
+	is_all = 1
+	
+	exist stage_file
+	tail = strsize
+	
+	if tail <= 0 {
+		return
+	}
+
+	sdim note,tail+1
+	notesel note
+	noteload stage_file
+	
+	n = noteinfo(0)
+	if n < 3 {
+		return
+	}
+
+// カメラ
+	cs.0 = 0.0, 4.0, 0.0
+
+	ddim ps, EMAX,0
+
+	// TODO: 3行+α読む
+	sdim buf,STRBUF
+	noteget buf,0
+	split buf,",",ss
+	
+	stage_name = ss.1
+	
+// 数値
+	noteget buf,1
+	split buf,",",ss
+
+	if 1 { // 打ちだし箱 ver.0.3～ 境界
+		box_num = int(ss.1)
+
+		gpbox id_pong,2,0x3333FF
+		setpos id_pong, double(ss.2),double(ss.3),double(ss.4)
+		gppbind id_pong, 100, 1000
+		gppset id_pong, GPPSET_FRICTION, 1000.0, REPONG
+		gppset id_pong, GPPSET_DAMPING, 0.0, double(ss.5) * 0.01
+	
+		// TODO: 重力
+		//gppset id_pong, GPPSET_GRAVITY, 0,0,0
+
+		ps.EX.0 = double(ss.2)
+		ps.EY.0 = double(ss.3)
+	
+		if length(ss) >= 6 + 1 + 6 {
+			setborder double(ss.7), double(ss.8), double(ss.9), 1
+			setborder double(ss.10), double(ss.11), double(ss.12), 2
+		}
+	}
+
+// options string
+	noteget buf,2
+	split buf,",",ss
+
+	repeat length(ss)
+		if ss.cnt == "all" {
+			is_all = 1
+		}
+		if ss.cnt == "one" {
+			is_all = 0
+		}
+	loop
+
+
+	c = 0
+	l = 3
+	repeat
+		if l >= n {
+			break
+		}
+		noteget buf,l
+
+		split buf,",",ss
+		type = int(ss.0)
+		if type == 0 {
+			l++
+			continue
+		}
+	
+// デフォルト値
+		ps.EX.c = 1.0
+		ps.EY.c = 1.0
+		ps.EZ.c = 1.0
+		ps.ENX.c = 0.0
+		ps.ENY.c = 0.0
+		ps.ENZ.c = 0.0
+
+		ps.EMD.c = 0.0
+		ps.ERD.c = 0.0
+// 重量0は不動
+		ps.EWT.c = 0.0
+
+		ps.EFRIC.c = 1.0
+		ps.EPONG.c = 1.0
+		ps.ESIZE1.c = 2.0
+		ps.ESIZE2.c = 2.0
+		ps.ESIZE3.c = 2.0
+
+		ps.EADD.c = 1.0
+
+		if type == 4 { // 簡易指定 不動壁
+			ps.EX.c = double(ss.1) * 2.0 + 1.0
+			ps.EY.c = double(ss.2) * 2.0 + 1.0
+			ps.EZ.c = double(ss.3) * 2.0 + 1.0
+			ps.EFRIC.c = 100.0
+			ps.EPONG.c = 0.0
+			ps.EADD.c = 3.0
+		}
+		if type == 5 { // 直接全指定
+			repeat EMAX
+				ps.cnt.c = double(ss(cnt+1))
+			loop
+		}
+		if type == 6 { // 簡易床
+			ps.ESIZE1.c = double(ss.4) * 2.0
+			ps.ESIZE2.c = double(ss.5) * 2.0
+			ps.ESIZE3.c = double(ss.6) * 2.0
+
+			ps.EX.c = double(ss.1) * 2.0 + ps.ESIZE1.c * 0.5
+			ps.EY.c = double(ss.2) * 2.0 + ps.ESIZE2.c * 0.5
+			ps.EZ.c = double(ss.3) * 2.0 + ps.ESIZE3.c * 0.5
+	
+			ps.EFRIC.c = double(ss.7)
+			ps.EPONG.c = double(ss.8)
+	
+			ps.EADD.c = double(ss.9)
+		}
+		if type == 7 { // ボーン追従みたいなもの
+			repeat EMAX
+				ps.cnt.c = double(ss(cnt+1))
+			loop
+		}
+	
+		c++
+		l++
+	loop
+
+
+	n = length2(ps)
+	repeat n
+		c = cnt
+		col = 0xCCCCCC
+		wt = ps.EWT.c
+		attr = int(ps.EADD.c)
+		if attr == 2 {
+			col = 0xFF3333
+			if is_all == 0 {
+				col = 0xFF9999
+			}
+		}
+		if attr == 3 {
+			col = 0x666666
+		}
+		if attr == 7 {
+			col = 0xFFFF99
+			// 質量0だと動かない
+			wt = 100.0
+		}
+	
+		gpbox id, ps.ESIZE1.c, col
+
+		setwork2 id, ps.EADD.c, double(c), double(id)
+		
+		setpos id, ps.EX.c, ps.EY.c, ps.EZ.c
+		setang id, ps.ENX.c, ps.ENY.c, ps.ENZ.c
+		gppbind id, wt, ps.EFRIC.c
+		gppset id, GPPSET_FRICTION, ps.EFRIC.c, ps.EPONG.c
+		gppset id, GPPSET_DAMPING, ps.EMD.c, ps.ERD.c
+
+		if attr == 4 {
+			gppset id,GPPSET_GRAVITY, 0,0,0
+		}
+		if attr == 7 {
+			gppset id, GPPSET_KINEMATIC, 1
+			setobjmode id, OBJ_MOVE, 0
+			setdir id, ps.EDX.c, ps.EDY.c, ps.EDZ.c
+
+			setobjmode id, OBJ_BORDER | OBJ_FLIP, 0
+		}
+
+	loop
+
+	return
+
+
+// 30度 0.5236
+// 45度 0.7854
+// 60度 1.0472
+// 75度 1.309
+// 90度 1.57

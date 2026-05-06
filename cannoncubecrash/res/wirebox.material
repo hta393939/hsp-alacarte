@@ -1,0 +1,23 @@
+material wirebox {
+    u_worldViewProjectionMatrix = WORLD_VIEW_PROJECTION_MATRIX
+    u_modulateAlpha = 1
+
+    u_diffuseColor = 1.0, 1.0, 1.0, 1.0
+
+    technique {
+        pass {
+            vertexShader = res/shaders/colored.vert
+            fragmentShader = res/shaders/colored.frag
+            defines = MODULATE_ALPHA
+
+            renderState {
+                cullFace = false
+
+		depthTest = true
+		blend = true
+                blendSrc = SRC_ALPHA
+                blendDst = ONE_MINUS_SRC_ALPHA
+            }
+        }
+    }
+}

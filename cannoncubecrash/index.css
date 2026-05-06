@@ -1,0 +1,55 @@
+body {
+	margin: 0;
+	padding: 0;
+	line-height: 150%;
+}
+
+h2 {
+	margin: 0.5em 1em;
+}
+
+h4 {
+	border-style: solid;
+	border-color: #CC99FF;
+	border-width: 0 0 2px 0.5em;
+
+	margin: 0.5em 0.5em;
+	padding: 2px 0.5em;
+}
+
+img {
+	margin: 0.5em;
+}
+
+dt {
+	border-style: solid;
+	border-color: #CC99FF;
+	border-width: 0 0 2px 2px;
+
+	margin: 0.5em 0.5em;
+	padding: 2px 0.5em;
+}
+
+.claim {
+	border: solid 1px black;
+	margin: 0.5em;
+	padding: 0.5em;
+
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	overflow: auto;
+}
+
+.warn {
+	color: red;
+	font-weight: bold;
+}
+
+.box {
+	margin: 0.5em;
+	padding: 0.5em;
+}
+
+.important {
+	font-weight: bold;
+}
