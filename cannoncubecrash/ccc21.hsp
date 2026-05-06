@@ -84,6 +84,23 @@
 #const ST_RB 512
 #const ST_TAB 1024
 
+#module
+#defcfunc _split str intext, array result0, local intext0, local result1, local offset0, local count0
+	//sdim result0, 256, 256
+	intext0 = intext
+	result1 = result
+	offset0 = 0
+	count0 = 0
+	repeat 256
+		getstr result1, intext0, offset0, ','
+		offset0 += strsize
+		if strsize > 0 {
+			count0 += 1
+			result0(cnt) = result1
+		}
+	loop
+	return count0
+#global
 
 // 2.0四方を基準サイズとする(not 1.0)
 
@@ -116,6 +133,7 @@
 	
 	is_shooting = 0
 
+	sdim ss, 256,256
 
 *main05
 // メインループの先頭
@@ -311,7 +329,7 @@
 	count = 0
 
 	repeat 100,1
-		stage_file = "" + strf("stage/s%03d.txt", cnt)
+		stage_file = "" + strf("res/s%03d.txt", cnt)
 		exist stage_file
 		tail = strsize
 		if tail <= 0 {
@@ -325,9 +343,13 @@
 
 		noteload stage_file
 		noteget buf
-		split buf,",",ss
+		// NOTE: split を書き換える
+		//split buf,",",ss
+		split_count = _split(buf, ss)
+		
 		s = ""
-		if length(ss) >= 2 {
+		//if length(ss) >= 2 {
+		if split_count >= 2 {
 			s = ss.1
 		}
 		name_stage.cnt = s	
@@ -535,7 +557,7 @@
 
 *readystage01
 	dirsep = ""
-	stage_file = dirsep + strf("stage/s%03d.txt", cur_stage)
+	stage_file = dirsep + strf("res/s%03d.txt", cur_stage)
 	gosub *readstage01
 
 	
@@ -773,13 +795,15 @@
 	// TODO: 3行+α読む
 	sdim buf,STRBUF
 	noteget buf,0
-	split buf,",",ss
+	split_count = _split(buf, ss)
+	//split buf,",",ss
 	
 	stage_name = ss.1
 	
 // 数値
 	noteget buf,1
-	split buf,",",ss
+	split_count = _split(buf, ss)
+	//split buf,",",ss
 
 	if 1 { // 打ちだし箱 ver.0.3～ 境界
 		box_num = int(ss.1)
@@ -796,7 +820,8 @@
 		ps.EX.0 = double(ss.2)
 		ps.EY.0 = double(ss.3)
 	
-		if length(ss) >= 6 + 1 + 6 {
+		//if length(ss) >= 6 + 1 + 6 {
+		if split_count >= 6 + 1 + 6 {			
 			setborder double(ss.7), double(ss.8), double(ss.9), 1
 			setborder double(ss.10), double(ss.11), double(ss.12), 2
 		}
@@ -804,9 +829,11 @@
 
 // options string
 	noteget buf,2
-	split buf,",",ss
+	//split buf,",",ss
+	split_count = _split(buf, ss)
 
-	repeat length(ss)
+	repeat split_count
+	//repeat length(ss)
 		if ss.cnt == "all" {
 			is_all = 1
 		}
@@ -825,6 +852,7 @@
 		noteget buf,l
 
 		split buf,",",ss
+		split_count = _split(buf, ss)
 		type = int(ss.0)
 		if type == 0 {
 			l++
