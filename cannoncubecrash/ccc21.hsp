@@ -1,11 +1,10 @@
 /**
- * @file ccc20.hsp
  * @date 2026-05-06
  * for HSP3.7 HGIMG4
  */
 
 // Copyright (C) 2016- Usagi
-// Licensed under the BSD 3-Clause License.
+// SPDX-License-Identifier: BSD 3-Clause "New" or "Revised" License
 // https://opensource.org/licenses/BSD-3-Clause
 // 三条項修正BSDライセンスです。
 
