@@ -17,13 +17,6 @@
 
 #include "kernel32.as"
 
-// 定義するとパッド判定も行う
-#define _USEPAD
-
-#ifdef _USEPAD
-#include "joy.hsp"
-#endif
-
 // 0: リリース版、1: 開発中、2: 開発中(追加操作可能)
 #const DEV 1
 
@@ -66,23 +59,33 @@
 #const BIT_PLAY 0x1
 #const BIT_CLEAR 0x2
 
-#const JOY_ABS 0.6
-
 // 押し続け何回分で1押しにするか
 #const KEY_DOWNRATE 15
 
 // stick用
-#const ST_L 1
-#const ST_U 2
-#const ST_R 4
-#const ST_D 8
+#const ST_LEFT 1
+#const ST_UP 2
+#const ST_RIGHT 4
+#const ST_DOWN 8
 #const ST_SPC 16
+// not use
 #const ST_ENTER 32
+// not use
 #const ST_CTRL 64
 #const ST_ESC 128
 #const ST_LB 256
+// not use
 #const ST_RB 512
+// not use
 #const ST_TAB 1024
+#const ST_Z 0x0800
+#const ST_X 0x1000
+#const ST_C 0x2000
+#const ST_A 0x4000
+#const ST_W 0x8000
+#const ST_D 0x10000
+#const ST_S 0x20000
+
 
 #module
 #defcfunc _split str intext, array result0, local intext0, local result1, local offset0, local count0
@@ -158,28 +161,34 @@
 	is_contidir = 1
 	gosub *input01
 
-	if key & ST_ESC { // GIVE UP
+	if key & (ST_ESC | ST_C) { // GIVE UP
 		goto *clear07
 	}
 
 	gosub *cam01
 
 	if 1 {
-		if key & ST_L {
+		if key & (ST_LEFT | ST_A) {
 			a_head--
 		}
-		if key & ST_R {
+		if key & (ST_RIGHT | ST_D) {
 			a_head++
 		}
-		if key & ST_U {
+		if key & (ST_UP | ST_W) {
 			a_pitch++
 		}
-		if key & ST_D {
+		if key & (ST_DOWN | ST_S) {
 			a_pitch--
 		}
-		if key & ST_CTRL {
+		if key & ST_X {
 			a_head = 0
 			a_pitch = 0
+			// NOTE: カメラ角度もリセット
+			c_force = 1
+			head = - M_PI * 0.75
+			pitch = - M_PI * 0.1
+			c_head = - M_PI * 0.75
+			c_pitch = - M_PI * 0.1
 		}
 
 		a_pitch = limit(a_pitch, -90,90)
@@ -202,7 +211,7 @@
 		setpos id_guide, x,y,z
 	}
 
-	if key & ST_SPC {
+	if key & (ST_SPC | ST_Z) {
 			if box_num >= 1 {
 				box_num--
 				
@@ -222,7 +231,7 @@
 			}
 		}
 
-		if key & ST_SPC {
+		if key & (ST_SPC | ST_Z) {
 			clear_ts = ts - 2600
 		}
 		if ts - clear_ts >= 3000 {
@@ -357,12 +366,9 @@
 
 		noteload stage_file
 		noteget buf
-		// NOTE: split を書き換える
-		//split buf,",",ss
 		split_count = _split(buf, ss)
 		
 		s = ""
-		//if length(ss) >= 2 {
 		if split_count >= 2 {
 			s = ss.1
 		}
@@ -379,7 +385,7 @@
 	is_contidir = 0
 	gosub *input01
 
-	if key & ST_SPC {
+	if key & (ST_SPC | ST_Z) {
 		clears.sel_stage |= BIT_PLAY
 		cur_stage = sel_stage
 		gosub *save01
@@ -387,22 +393,22 @@
 	}
 
 	if 1 {
-		if key & ST_L {
+		if key & (ST_LEFT | ST_A) {
 			sel_stage--
 			if sel_stage < 1 {
 				sel_stage = max_stage
 			}
 		}
-		if key & ST_R {
+		if key & (ST_RIGHT | ST_D) {
 			sel_stage++
 			if sel_stage > max_stage {
 				sel_stage = 1
 			}
 		}
-		if key & ST_U {
+		if key & (ST_UP | ST_W) {
 			sel_stage -= 10
 		}
-		if key & ST_D {
+		if key & (ST_DOWN | ST_S) {
 			sel_stage += 10
 		}
 	}
@@ -415,11 +421,11 @@
 	s = "CANNON CUBE CRASH 2026"
 	font "",52
 
-	pos 102,102
+	pos 86,102
 	color 204,102,0
 	mes s
 
-	pos 100,100
+	pos 84,100
 	color 255,153,0
 	mes s
 
@@ -442,8 +448,8 @@
 	if status_congra == 2 {
 		color 0xFF,0xFF,0xCC
 	}
-	pos 150
-	mes "PUSH SPACE KEY FOR START !"
+	pos 214
+	mes "PUSH Z KEY FOR START !"
 	
 	if DEV >= 1 {
 		mes strf("%d,", ginfo(26)) + ginfo(27)
@@ -473,7 +479,7 @@
 *clear09
 	gosub *input01
 	
-	if key & ST_SPC {
+	if key & (ST_SPC | ST_Z) {
 		status_congra = 2
 
 		gosub *releasestage01
@@ -496,9 +502,9 @@
 
 	mes ""
 	font "",32
-	pos 250
+	pos 250 + 16
 	color 0xCC,0xCC,0xCC
-	mes "PUSH SPACE KEY"
+	mes "PUSH Z KEY"
 
 	await 1000/60
 	goto *clear09
@@ -538,15 +544,16 @@
 		code = ""
 		code += {"
 const text = localStorage.getItem('CCC3');
-
+const ss = text.split(',');
+for (let i = 0; i < ss.length; ++i) {
+  window._f64[i] = Number.parseFloat(ss[i]);
+}
 "}
-		// 文字列として取得する TODO: 未実装
-		split_num = _split('0,1,1', ss)
-		if split_num >= 3 {
-			buf = ss(0)
-			sel_stage = int(ss(1))
-			cur_stage = int(ss(2))
-		}
+		repeat 101
+			clears.cnt = int(_padd(cnt))
+		loop
+		sel_stage = int(_padd(101))
+		cur_stage = int(_padd(102))
 	} else {
 		save_file = dirinfo(1) + "/save.ini"
 		GetPrivateProfileInt "save","selstage",sel_stage,save_file
@@ -555,13 +562,12 @@ const text = localStorage.getItem('CCC3');
 		cur_stage = stat
 
 		GetPrivateProfileString "save","clear", varptr(buf),varptr(buf),256,save_file
+
+		n = strlen(buf)
+		repeat n
+			clears.cnt = int(strmid(buf,cnt,1))
+		loop
 	}
-
-	n = strlen(buf)
-	repeat n
-		clears.cnt = int(strmid(buf,cnt,1))
-	loop
-
 
 	//mmload "res/bgm5.mid",0,1
 	//mmplay 0
@@ -570,15 +576,15 @@ const text = localStorage.getItem('CCC3');
 
 
 *save01
-
-	s = ""
-	repeat 101
-		s += "" + clears.cnt
-	loop
-	s += strf(",%d", sel_stage)
-	s += strf(",%d", cur_stage)
-
 	if _isem {
+		s = clears(0)
+		repeat 100
+			i = cnt + 1
+			s += "," + clears(i)
+		loop
+		s += strf(",%d", sel_stage)
+		s += strf(",%d", cur_stage)
+		
 		code = "localStorage.setItem('CCC3', '" + s + "');"
 		exec code
 	} else {
@@ -612,6 +618,7 @@ const text = localStorage.getItem('CCC3');
 // カメラ用パラメータ
 	c_head = - M_PI * 0.75
 	c_pitch = - M_PI * 0.1
+	c_force = 0
 	c_x = mousex
 	c_y = mousey
 	c_preMov = 1
@@ -634,9 +641,14 @@ const text = localStorage.getItem('CCC3');
 	focal = double(height) * 0.5 / tan(deg2rad(fov)*0.5)
 	tr_rate = 1.0 / focal * c_dist
 
+
+	// NOTE: 左右入れ替え
+	//lbutton = key & ST_LB
+	//rbutton = key & ST_RB
+
+	// 回転だけ
+	rbutton = key & ST_LB
 	
-	lbutton = key & ST_LB
-	rbutton = key & ST_RB
 	
 	head = c_head
 	pitch = c_pitch
@@ -694,7 +706,8 @@ const text = localStorage.getItem('CCC3');
 
 
 // 変換して算出
-	if (c_preMov != 0) | (c_preRot != 0) {
+	if (c_preMov != 0) | (c_preRot != 0) | (c_force != 0) {
+		c_force = 0
 		rr = cos(pitch)
 
 		dx = rr * sin(head)
@@ -717,77 +730,16 @@ const text = localStorage.getItem('CCC3');
 // マウスとキーボード
 	mx = mousex
 	my = mousey
-	mw = mousew
 	
 	key = 0
-	stick key, ST_LB | ST_RB | 15
-	
-// stick以外のキー
-	ks.0 = 'A','W','D','S', 'C'
-	bits.0 = ST_L, ST_U, ST_R, ST_D, ST_CTRL
-	repeat length(ks)
-		getkey gk, ks.cnt
-		if gk {
-			key |= bits.cnt
-		}
-	loop
+	stick key, ST_LB | ST_RB | 15 | ST_A | ST_W | ST_D | ST_S
 
-// パッド情報から key を加工
-#ifdef _USEPAD
-	repeat 16
-		ddim jbuf, 6
-		result = _getjoy(cnt, jbuf)
-		if result < 0 {
-			continue
-		}
-	
-// 方向キー
-		if jbuf.2 < -JOY_ABS {
-			key |= ST_L
-		}
-		if jbuf.2 > JOY_ABS {
-			key |= ST_R
-		}
-		if jbuf.3 < -JOY_ABS {
-			key |= ST_U
-		}
-		if jbuf.3 > JOY_ABS {
-			key |= ST_D
-		}
-	
-// POV
-		pov = int(jbuf.1)
-		if pov >= 0 {
-			if pov == JOY_POVFORWARD {
-				key |= ST_U
-			}
-			if pov == JOY_POVRIGHT {
-				key |= ST_R
-			}
-			if pov == JOY_POVBACKWARD {
-				key |= ST_D
-			}
-			if pov == JOY_POVLEFT {
-				key |= ST_L
-			}
-		}
-	
-// ボタンビットの読み替え
-		but_bits = int(jbuf.0)
-		if but_bits & JOY_BUTTON1 {
-			key |= ST_SPC
-		}
-		if but_bits & JOY_BUTTON2 {
-			key |= ST_ESC
-		}
-		if but_bits & JOY_BUTTON3 {
-			key |= ST_CTRL
-		}
-	loop
-#endif
+	if _isem {
+		// TODO: 未実装 pad から取り出し
+	}
 
 // カウントによるオンオフ加工
-	bits.0 = ST_L, ST_U, ST_R, ST_D, ST_SPC
+	bits.0 = ST_LEFT | ST_A, ST_UP | ST_W, ST_RIGHT | ST_D, ST_DOWN | ST_S, ST_SPC | ST_Z
 	repeat 5
 		if (cnt < 4) & (is_contidir != 0) {
 			downs.cnt = 0
@@ -797,7 +749,8 @@ const text = localStorage.getItem('CCC3');
 		if key & bits.cnt {
 			downs.cnt++
 			if (downs.cnt \ KEY_DOWNRATE) != 1 {
-				key ^= bits.cnt
+				mask = 0xffffff - bits.cnt
+				key = key & mask
 			}
 		} else {
 			downs.cnt = 0

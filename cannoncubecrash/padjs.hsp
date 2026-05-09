@@ -18,8 +18,12 @@
 	result = _ems32@(251)
 	return result
 
-#defcfunc _padstr0
-	result = _emstr0@
+#defcfunc _padd int index0
+	result = _emf32@(index0)
+	return result
+
+#defcfunc _padi int index1
+	result = _ems32@(index1)
 	return result
 
 #global
@@ -47,11 +51,11 @@
 	code = ""
 	code += strf("const _pf64 = %d;\n", _pf64)
 	code += strf("const _ps32 = %d;\n", _ps32)
-	code += strf("const _pstr0 = %d;\n", _pstr0)
 	code += {"
 const _f64 = new Float64Array(Module.HEAPF64.buffer, _pf64, 256);
 const _s32 = new Int32Array(Module.HEAP32.buffer, _ps32, 256);
-const _str0 = new Uint8Array(Module.HEAP8.buffer, _pstr0, 1024);
+window._f64 = _f64;
+window._s32 = _s32;
 
 const numNP = navigator.maxTouchPoints ?? 0;
 _s32[254] = numNP;
