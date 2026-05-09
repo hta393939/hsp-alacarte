@@ -113,7 +113,7 @@
 		_isem = 1
 	}
 	if _isem == 0 {
-		// TODO: 
+		// TODO: res/ のままでアクセスできる
 		//chdir "data"
 	}
 
@@ -317,8 +317,10 @@
 
 	if DEV >= 1 {
 		color 255,255,255
-		mes "HGIMG4 sample," + fps + "fps," + ts + "," + exist_num
+		mes "" + fps + "fps," + ts + "," + exist_num
 		mes strf("%d",a_head) + strf(",%d",a_pitch)
+		padnum = _padnum()
+		mes strf("pad: %d", padnum)
 	}
 
 	if clear_ts {
@@ -511,7 +513,7 @@
 
 
 *init01
-	title "Cannon Cube Crash ver.2.1"
+	title "Cannon Cube Crash ver.3.0.1"
 	setreq SYSREQ_VSYNC,1
 	setreq SYSREQ_USEGPBFONT,1
 	gpreset
@@ -549,6 +551,8 @@ for (let i = 0; i < ss.length; ++i) {
   window._f64[i] = Number.parseFloat(ss[i]);
 }
 "}
+		exec code
+
 		repeat 101
 			clears.cnt = int(_padd(cnt))
 		loop
@@ -577,10 +581,9 @@ for (let i = 0; i < ss.length; ++i) {
 
 *save01
 	if _isem {
-		s = clears(0)
-		repeat 100
-			i = cnt + 1
-			s += "," + clears(i)
+		s = "" + clears(0)
+		repeat 100, 1
+			s += "," + clears(cnt)
 		loop
 		s += strf(",%d", sel_stage)
 		s += strf(",%d", cur_stage)
@@ -735,7 +738,9 @@ for (let i = 0; i < ss.length; ++i) {
 	stick key, ST_LB | ST_RB | 15 | ST_A | ST_W | ST_D | ST_S
 
 	if _isem {
-		// TODO: 未実装 pad から取り出し
+		// pad から取り出し
+		padkey = _padstick()
+		key |= padkey
 	}
 
 // カウントによるオンオフ加工
