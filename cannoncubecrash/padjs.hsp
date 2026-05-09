@@ -19,7 +19,7 @@
 	return result
 
 #defcfunc _padd int index0
-	result = _emf32@(index0)
+	result = _emf64@(index0)
 	return result
 
 #defcfunc _padi int index1
@@ -82,6 +82,12 @@ _s32[255] = osbit;
 let _prez = 0;
 let _prex = 0;
 let _prec = 0;
+
+let _predcup = 0;
+let _predcdown = 0;
+let _predcleft = 0;
+let _predcright = 0;
+
 const _update = () => {
   requestAnimationFrame(() => {
     _update();
@@ -103,28 +109,26 @@ const _update = () => {
 	    const a = g.axes[i] || 0;
 	    _f64[i] = a; // ÅV‚Åã‘‚«
 	  }
-	  // 16bit
+	  // 31bit‚Ü‚Å
 	  for (let i = 0; i < 31; ++i) {
 	    const b = g.buttons[i]?.pressed ? 1 : 0;
 	    bp |= b << i;
 	  }
 
-      // HSP stick
-      // B1 1050h, B2 800h, B3 2000h 
       let key = 0;
 
-      const curx = (bp & 1) ? 1 : 0;
-	  const curz = (bp & 2) ? 1 : 0;
-	  const curc = (bp & (4 | 0x880)) ? 1 : 0; // B8, B12
+      const curz = (bp & 1) ? 1 : 0;
+	  const curx = (bp & 2) ? 1 : 0;
+	  const curc = (bp & 4) ? 1 : 0;
 
 	  if ((1 - _prex) & curx) {
-	    key |= 0x1000; // B1 X
+	    key |= 0x1000; // X
 	  }
 	  if ((1 - _prez) & curz) {
-	    key |= 0x0800; // B2 Z
+	    key |= 0x0800; // Z
 	  }
 	  if ((1 - _prec) & curc) {
-	    key |= 0x2000; // B3 C
+	    key |= 0x2000; // C
 	  }
 
 	  _prex = curx;
@@ -135,9 +139,11 @@ const _update = () => {
 	  const ay = _f64[1];
 	  const pov = _f64[9];
 	  if (Math.abs(ax) > dead) {
+		// ¶‚Æ‰E
 	    key |= (ax < 0) ? 0x1 : 0x4;
 	  }
 	  if (Math.abs(ay) > dead) {
+		// ã‚Æ‰º
 	    key |= (ay < 0) ? 0x2 : 0x8;
 	  }
 	  if (pov) {
@@ -146,6 +152,29 @@ const _update = () => {
           key |= povbits[dir];
 		}
 	  }
+
+	  const curdcup = (bp & (1 << 12)) ? 1 : 0;
+	  const curdcdown = (bp & (1 << 13)) ? 1 : 0;
+	  const curdcleft = (bp & (1 << 14)) ? 1 : 0;
+	  const curdcright = (bp & (1 << 15)) ? 1 : 0;
+
+      if ((1 - _predcup) & curdcup) {
+	    key |= 0x2;
+      }
+      if ((1 - _predcdown) & curdcdown) {
+	    key |= 0x8;
+	  }
+	  if ((1 - _predcleft) & curdcleft) {
+	    key |= 0x1;
+	  }
+	  if ((1 - _predcright) & curdcright) {
+        key |= 0x4;
+      }
+
+      _predcup = curdcup;
+      _predcdown = curdcdown;
+      _predcleft = curdcleft;
+	  _predcright = curdcright;
 
 	  _s32[252] |= key; // or ‚Å’Ç‰Á
 	}
