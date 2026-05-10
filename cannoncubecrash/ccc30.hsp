@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-09
+ * @date 2026-05-10
  * for HSP3.7 HGIMG4
  */
 
@@ -540,13 +540,13 @@
 	status_congra = 0
 
 	dim clears, 101
-	sdim buf, 260
+	sdim buf, 4096
 
 	if _isem {
 		code = ""
 		code += {"
 const text = localStorage.getItem('CCC3');
-const ss = text.split(',');
+const ss = text ? text.split(',') : [];
 for (let i = 0; i < ss.length; ++i) {
   window._f64[i] = Number.parseFloat(ss[i]);
 }
@@ -559,18 +559,21 @@ for (let i = 0; i < ss.length; ++i) {
 		sel_stage = int(_padd(101))
 		cur_stage = int(_padd(102))
 	} else {
-		save_file = dirinfo(1) + "/save.ini"
-		//GetPrivateProfileInt "save","selstage",sel_stage,save_file
-		sel_stage = stat
-		//GetPrivateProfileInt "save","curstage",cur_stage,save_file
-		cur_stage = stat
+		//save_file = dirinfo(1) + "/save.ini"
+		save_file = "res/save.txt"
 
-		//GetPrivateProfileString "save","clear", varptr(buf),varptr(buf),256,save_file
+		exist save_file
+		if strsize > 0 {
+			bload save_file, buf
+			split_num = _split(buf, ss)
 
-		n = strlen(buf)
-		repeat n
-			clears.cnt = int(strmid(buf,cnt,1))
-		loop
+			repeat 101
+				clears(cnt) = int(ss(cnt))
+			loop
+
+			sel_stage = int(ss(101))
+			cur_stage = int(ss(102))
+		}
 	}
 
 	//mmload "res/bgm5.mid",0,1
@@ -580,27 +583,19 @@ for (let i = 0; i < ss.length; ++i) {
 
 
 *save01
+	clears(0) = 300
+	s = "" + clears(0)
+	repeat 100, 1
+		s += "," + clears(cnt)
+	loop
+	s += strf(",%d", sel_stage)
+	s += strf(",%d", cur_stage)
+
 	if _isem {
-		s = "" + clears(0)
-		repeat 100, 1
-			s += "," + clears(cnt)
-		loop
-		s += strf(",%d", sel_stage)
-		s += strf(",%d", cur_stage)
-		
 		code = "localStorage.setItem('CCC3', '" + s + "');"
 		exec code
 	} else {
-		s = strf("%d", sel_stage)
-		//WritePrivateProfileString "save","selstage",varptr(s),save_file
-		s = strf("%d", cur_stage)
-		//WritePrivateProfileString "save","curstage",varptr(s),save_file
-
-		s = ""
-		repeat 101
-			s += "" + clears.cnt
-		loop
-		//WritePrivateProfileString "save","clear",varptr(s),save_file
+		bsave save_file, s, strlen(s)
 	}
 	return
 
@@ -633,6 +628,11 @@ for (let i = 0; i < ss.length; ++i) {
 *releasestage01
 	// TODO: ¡‚Í‚±‚ê‚µ‚©‚í‚©‚ç‚È‚¢
 	gpreset 0
+	return
+
+
+*restart01
+	// NOTE: 
 	return
 
 
