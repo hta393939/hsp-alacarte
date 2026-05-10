@@ -417,11 +417,11 @@
 	s = LONG_TITLE
 	font "",52
 
-	pos 130, 102
+	pos 146, 102
 	color 204,102,0
 	mes s
 
-	pos 128, 100
+	pos 144, 100
 	color 255,153,0
 	mes s
 
@@ -802,7 +802,6 @@ for (let i = 0; i < ss.length; ++i) {
 // ”’l
 	noteget buf,1
 	split_count = _split(buf, ss)
-	//split buf,",",ss
 
 	if 1 { // ‘Å‚¿‚¾‚µ”  ver.0.3` ‹«ŠE
 		box_num = int(ss.1)
@@ -828,11 +827,9 @@ for (let i = 0; i < ss.length; ++i) {
 
 // options string
 	noteget buf,2
-	//split buf,",",ss
 	split_count = _split(buf, ss)
 
 	repeat split_count
-	//repeat length(ss)
 		if ss.cnt == "all" {
 			is_all = 1
 		}
