@@ -8,7 +8,7 @@
 // NOTE: const を使う
 #const PX_RESTORE 0xF0000000
 
-#deffunc hspvpad_init int _p1, int _p2, int _p3, int _p4
+#deffunc hspvpad_init int _p1, int _p2, int _p3, int _p4, int _p5, int _p6
 
 	;	バーチャルパッドの初期化
 	;	hspvpad_init p1,p2
@@ -16,13 +16,16 @@
 	;	p2 : パッド配置(1=左PAD/2=上PAD/4=移動のみ)
 	;	p3 : X方向オフセット
 	;	p4 : Y方向オフセット
+	;	p5 : X方向サイズ(0=デフォルト)
+	;	p6 : Y方向サイズ(0=デフォルト)
 	;
 	vpbuf=_p1
 	if vpbuf<=0 : vpbuf=ginfo(25)
 	celload "vpad.png",vpbuf
 	celdiv vpbuf,64,64
 	vppos=_p2
-	sx=ginfo_sx:sy=ginfo_sy
+	sx=_p5:if sx=0 : sx=ginfo_sx
+	sy=_p6:if sy=0 : sy=ginfo_sy
 	vpadx=32:if vppos&1 : vpadx=sx-223
 	i=22:if vppos&2 : i=4
 	vpady=sy*i/30
