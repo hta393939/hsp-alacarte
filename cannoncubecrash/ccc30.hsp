@@ -15,7 +15,7 @@
 
 #include "hgimg4.as"
 
-//#include "kernel32.as"
+#define LONG_TITLE "CANNON CUBE CRASH"
 
 // 0: リリース版、1: 開発中、2: 開発中(追加操作可能)
 #const DEV 1
@@ -165,6 +165,10 @@
 		goto *clear07
 	}
 
+	if key & ST_X {
+		goto *restart01
+	}
+
 	gosub *cam01
 
 	if 1 {
@@ -179,16 +183,6 @@
 		}
 		if key & (ST_DOWN | ST_S) {
 			a_pitch--
-		}
-		if key & ST_X {
-			a_head = 0
-			a_pitch = 0
-			// NOTE: カメラ角度もリセット
-			c_force = 1
-			head = - M_PI * 0.75
-			pitch = - M_PI * 0.1
-			c_head = - M_PI * 0.75
-			c_pitch = - M_PI * 0.1
 		}
 
 		a_pitch = limit(a_pitch, -90,90)
@@ -420,14 +414,14 @@
 	redraw 0
 	gpdraw
 
-	s = "CANNON CUBE CRASH 2026"
+	s = LONG_TITLE
 	font "",52
 
-	pos 86,102
+	pos 130, 102
 	color 204,102,0
 	mes s
 
-	pos 84,100
+	pos 128, 100
 	color 255,153,0
 	mes s
 
@@ -513,7 +507,7 @@
 
 
 *init01
-	title "Cannon Cube Crash ver.3.0.1"
+	title LONG_TITLE + " ver.3.0.1"
 	setreq SYSREQ_VSYNC,1
 	setreq SYSREQ_USEGPBFONT,1
 	gpreset
@@ -524,7 +518,7 @@
 	pos 250,300
 	font "",32
 	color 255,255,255
-	mes "CANNON CUBE CRASH"
+	mes LONG_TITLE
 	redraw 1
 
 // キー押し下げカウント
@@ -632,8 +626,14 @@ for (let i = 0; i < ss.length; ++i) {
 
 
 *restart01
-	// NOTE: 
-	return
+	// サブルーチンではない
+	
+	gosub *releasestage01
+
+	clears.sel_stage |= BIT_PLAY
+	cur_stage = sel_stage
+	gosub *save01
+	goto *main01
 
 
 *cam01
