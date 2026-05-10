@@ -557,9 +557,13 @@ for (let i = 0; i < ss.length; ++i) {
 		save_file = "res/save.txt"
 
 		exist save_file
-		if strsize > 0 {
-			bload save_file, buf
-			split_num = _split(buf, ss)
+		byte_num = strsize
+		if byte_num > 0 {
+			sdim whole, byte_num + 16 
+			bload save_file, whole
+			sdim whole_text, byte_num + 16
+			memcpy whole_text,whole, byte_num
+			split_num = _split(whole_text, ss)
 
 			repeat 101
 				clears(cnt) = int(ss(cnt))
