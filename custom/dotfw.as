@@ -3,7 +3,7 @@
 
 #include "hsp3dish.as"
 #include "layer_fade.as"
-#include "mod_joystick2.as"
+#addition "mod_joystick2.as"
 #include "mod_vpad.as"
 
 ;
@@ -1354,11 +1354,15 @@
 	if player_button_int>0 : i|=PLAYER_KEY_BUTTON1
 	i|=256
 
+#ifdef _hspwin
 	if _dotfw_joystick@ {
 		jstick key@,i
 	} else {
 		stick key@,i
 	}
+#else
+	stick key@,i
+#endif
 	if _dotfw_vpad@ : hspvpad_key key@
 
 // NOTE: 
@@ -2247,6 +2251,27 @@
 	return
 
 
+#deffunc df_mapspawnres var _p1,var _p2, var _p3, int _p4
+
+	;	df_mapspawnの結果だけを取得する
+	;		x, y, info, id
+	;		id : 0～index (index超過の場合はinfoが-1になる)
+	;
+	if _p4>=numinfo : _p3=-1 : return
+	if sp_player_shtmap!=0 : goto *df_mapspawnres2
+
+	es_getbghit hitinfo,sp_player_map,_p4
+	if hitinfo!=ESMAPHIT_NOTICE : _p3=-1 : return
+	_p1=hitinfo(5):_p2=hitinfo(6):_p3=hitinfo(2)
+	return
+
+*df_mapspawnres2
+	es_getbghit hitinfo,sp_player_shtmap,_p4
+	if hitinfo!=ESMAPHIT_NOTICE : _p3=-1 : return
+	_p1=hitinfo(5)-x:_p2=hitinfo(6)-y:_p3=hitinfo(2)
+	return
+
+
 #deffunc df_eaction label _p1, int _p2
 
 	;	エネミーのアクション動作ラベルを設定
@@ -2583,13 +2608,13 @@
 	return
 
 
-#deffunc df_addeff int _p1, int _p2, int _p3, int _p4, int _p5
+#deffunc df_addeff int _p1, int _p2, int _p3, int _p4
 
 	;	汎用スプライトエフェクト登録
 	;		x,y,celid,bufid
 	;
 	dfi_sprnew
-	dfi_sprset spid, _p2, _p3, _p4, _p5
+	dfi_sprset spid, _p1, _p2, _p3, _p4
 	return
 
 #deffunc df_addfmes str _p1, int _p2, int _p3, int _p4, int _p5
