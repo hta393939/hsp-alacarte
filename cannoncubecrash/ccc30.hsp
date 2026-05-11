@@ -14,6 +14,7 @@
 #packopt ysize 600
 
 #include "hgimg4.as"
+#include "mod_vpad.as"
 
 #define LONG_TITLE "CANNON CUBE CRASH"
 
@@ -118,7 +119,12 @@
 	}
 
 	gosub *preini
-	
+
+	osbit = _padi(255)
+	if (osbit & 2) | 1 {
+		_usevpad = 1
+		gosub *vpad01
+	}
 
 
 	gosub *init01
@@ -128,20 +134,16 @@
 *main01
 	gosub *readystage01
 
-//	gpload id_guide,"res/wirebox", "n0"
 	gpload id_guide,"res/wirebox"
 
-//	gpload id,"res/grid", "n0"
 	gpload id,"res/grid"
 	setscale id, 2,2,2
 
 	if DEV >= 1 {
-//		gpload id,"res/grid", "n0"
 		gpload id,"res/grid"
 		setscale id, 2,2,2
 		setang id, M_PI*0.5,0,0
 
-//		gpload id,"res/axis", "n0"
 		gpload id,"res/axis"
 	}
 
@@ -375,6 +377,10 @@
 		status_congra = 2
 	}
 
+	if _usevpad {
+		gosub *vpad01
+	}
+
 
 *select05
 // “ü—Í‚ð“¾‚é
@@ -451,6 +457,10 @@
 		mes strf("%d,", ginfo(26)) + ginfo(27)
 	}
 
+	if _usevpad {
+		gosub *vpad05
+	}
+
 	redraw 1
 	await 1000/60
 	goto *select05
@@ -512,7 +522,9 @@
 	setreq SYSREQ_USEGPBFONT,1
 	gpreset
 	setcls CLSMODE_SOLID, $202020
-	
+
+	gmode 3, 64,64, 256
+
 	redraw 0
 	gpdraw
 	pos 250,300
@@ -738,8 +750,28 @@ for (let i = 0; i < ss.length; ++i) {
 	mx = mousex
 	my = mousey
 	
-	key = 0
-	stick key, ST_LB | ST_RB | 15 | ST_A | ST_W | ST_D | ST_S
+	// ‘€ì‚Ìó‘Ô
+	curkey = 0
+	stick curkey, ST_LB | ST_RB | 15 | ST_A | ST_W | ST_D | ST_S | ST_Z | ST_X | ST_C | ST_SPC
+	// ”»’èŒã
+	key = curkey
+
+	if _usevpad {
+		gosub *vpad03
+	}
+
+	if curkey & ST_A {
+		curkey |= ST_LEFT
+	}
+	if curkey & ST_W {
+		curkey |= ST_UP
+	}
+	if curkey & ST_D {
+		curkey |= ST_RIGHT
+	}
+	if curkey & ST_S {
+		curkey |= ST_DOWN
+	}
 
 	if _isem {
 		// pad ‚©‚çŽæ‚èo‚µ
@@ -851,7 +883,7 @@ for (let i = 0; i < ss.length; ++i) {
 		}
 		noteget buf,l
 
-		split buf,",",ss
+		//split buf,",",ss
 		split_count = _split(buf, ss)
 		type = int(ss.0)
 		if type == 0 {
@@ -980,3 +1012,73 @@ for (let i = 0; i < ss.length; ++i) {
 
 
 #include "padjs.hsp"
+
+
+*vpad01
+	celload "res/vpad.png"
+	vpad_id = stat
+	celdiv vpad_id, 64, 64
+
+	dim vpad_pos, 5, 7
+	vpad_pos(0,0) = 0,-2, 7, ST_LEFT, 0
+	vpad_pos(0,1) = 1,-3, 4, ST_UP, 0
+	vpad_pos(0,2) = 2,-2, 5, ST_RIGHT, 0
+	vpad_pos(0,3) = 1,-1, 6, ST_DOWN, 0
+	vpad_pos(0,4) = -3,-2, 0, ST_Z, 0
+	vpad_pos(0,5) = -2,-1, 2, ST_X, 0
+	vpad_pos(0,6) = -1,-2, 1, ST_C, 0
+	
+	return
+
+*vpad03
+	if (curkey & ST_LB) {
+		bx = 800 - 64 * 3
+		by = 600 - 64 * 3
+		vx = mx / 64
+		if mx >= bx {
+			vx = (mx - bx) / 64 - 3
+		}
+		vy = (my - by) / 64 - 3
+		found = -1
+		repeat length2(vpad_pos)
+			x = vpad_pos(0,cnt)
+			y = vpad_pos(1,cnt)
+			if (x == vx) & (y == vy) {
+				//dialog strf("%d, %d", x, y)
+				found = cnt
+				vpad_pos(4,cnt) = vpad_pos(3,cnt)
+			}
+		loop
+		//dialog strf("%d %d %d %d %d", mx, my, vx, vy, found)
+		//end
+	}
+	return
+
+*vpad05
+	curkey = key
+
+	repeat length2(vpad_pos)
+		val = vpad_pos(3,cnt)
+	
+		vpad_pos(4,cnt) |= (curkey & val)
+	
+		st = (vpad_pos(4,cnt) != 0)
+	
+		id = vpad_pos(2,cnt) + st * 8
+		x = vpad_pos(0,cnt) * 64
+		y = vpad_pos(1,cnt) * 64
+
+
+		if x < 0 {
+			x = 800 + x
+		}
+		if y < 0 {
+			y = 600 + y
+		}
+		pos x, y
+		celput vpad_id, id
+	loop
+	return
+
+*vpad09
+	return
