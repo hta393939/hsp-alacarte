@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-10
+ * @date 2026-05-12
  * for HSP3.7 HGIMG4
  */
 
@@ -14,7 +14,7 @@
 #packopt ysize 600
 
 #include "hgimg4.as"
-#include "mod_vpad.as"
+//#include "mod_vpad.as"
 
 #define LONG_TITLE "CANNON CUBE CRASH"
 
@@ -331,6 +331,10 @@
 		mes s
 	}
 
+	if _usevpad {
+		gosub *vpad05
+	}
+
 	redraw 1
 	await 1000/60
 
@@ -512,6 +516,10 @@
 	color 0xCC,0xCC,0xCC
 	mes "PUSH Z KEY"
 
+	if _usevpad {
+		gosub *vpad05
+	}
+
 	await 1000/60
 	goto *clear09
 
@@ -534,7 +542,7 @@
 	redraw 1
 
 // キー押し下げカウント
-	dim downs,5
+	dim downs, 7
 
 	//setcolor GPOBJ_LIGHT, 1,0.5,0.5
 	// dirとはいうが環境光らしい
@@ -551,7 +559,7 @@
 	if _isem {
 		code = ""
 		code += {"
-const text = localStorage.getItem('CCC3');
+const text = localStorage.getItem('ccc3');
 const ss = text ? text.split(',') : [];
 for (let i = 0; i < ss.length; ++i) {
   window._f64[i] = Number.parseFloat(ss[i]);
@@ -602,7 +610,7 @@ for (let i = 0; i < ss.length; ++i) {
 	s += strf(",%d", cur_stage)
 
 	if _isem {
-		code = "localStorage.setItem('CCC3', '" + s + "');"
+		code = "localStorage.setItem('ccc3', '" + s + "');"
 		exec code
 	} else {
 		bsave save_file, s, strlen(s)
@@ -753,13 +761,17 @@ for (let i = 0; i < ss.length; ++i) {
 	// 操作の状態
 	curkey = 0
 	stick curkey, ST_LB | ST_RB | 15 | ST_A | ST_W | ST_D | ST_S | ST_Z | ST_X | ST_C | ST_SPC
-	// 判定後
-	key = curkey
 
 	if _usevpad {
 		gosub *vpad03
 	}
 
+	gosub *input03
+
+	return
+
+*input03
+	// 方向入力
 	if curkey & ST_A {
 		curkey |= ST_LEFT
 	}
@@ -773,25 +785,20 @@ for (let i = 0; i < ss.length; ++i) {
 		curkey |= ST_DOWN
 	}
 
-	if _isem {
-		// pad から取り出し
-		padkey = _padstick()
-		key |= padkey
-	}
+	// カウントによるオンオフ加工
+	key = curkey
 
-// カウントによるオンオフ加工
-	bits.0 = ST_LEFT | ST_A, ST_UP | ST_W, ST_RIGHT | ST_D, ST_DOWN | ST_S, ST_SPC | ST_Z
-	repeat 5
+	bits.0 = ST_LEFT | ST_A, ST_UP | ST_W, ST_RIGHT | ST_D, ST_DOWN | ST_S, ST_SPC | ST_Z, ST_X, ST_C
+	repeat 7
 		if (cnt < 4) & (is_contidir != 0) {
 			downs.cnt = 0
 			continue
 		}
 	
-		if key & bits.cnt {
+		if curkey & bits.cnt {
 			downs.cnt++
 			if (downs.cnt \ KEY_DOWNRATE) != 1 {
-				mask = 0xffffff - bits.cnt
-				key = key & mask
+				key = key - (key & bits(cnt))
 			}
 		} else {
 			downs.cnt = 0
@@ -1006,11 +1013,6 @@ for (let i = 0; i < ss.length; ++i) {
 // 90度 1.57
 
 
-*nop
-	// 何もしないサブルーチン
-	return
-
-
 #include "padjs.hsp"
 
 
@@ -1031,32 +1033,51 @@ for (let i = 0; i < ss.length; ++i) {
 	return
 
 *vpad03
-	if (curkey & ST_LB) {
-		bx = 800 - 64 * 3
-		by = 600 - 64 * 3
-		vx = mx / 64
-		if mx >= bx {
-			vx = (mx - bx) / 64 - 3
+
+	repeat length2(vpad_pos)
+		vpad_pos(4, cnt) = 0
+	loop
+
+	bx = 800 - 64 * 3
+	by = 600 - 64 * 3
+
+	mtlist touches
+	num = stat
+	repeat num
+		mtinfo result, touches(cnt)
+
+		if result(0) == 0 {
+			continue
 		}
-		vy = (my - by) / 64 - 3
+		tx = result(1)
+		ty = result(2)
+
+		vx = tx / 64
+		if tx >= bx {
+			vx = (tx - bx) / 64 - 3
+		}
+		vy = (ty - by) / 64 - 3
 		found = -1
 		repeat length2(vpad_pos)
 			x = vpad_pos(0,cnt)
 			y = vpad_pos(1,cnt)
 			if (x == vx) & (y == vy) {
-				//dialog strf("%d, %d", x, y)
 				found = cnt
 				vpad_pos(4,cnt) = vpad_pos(3,cnt)
+				curkey |= vpad_pos(3, cnt)
 			}
 		loop
-		//dialog strf("%d %d %d %d %d", mx, my, vx, vy, found)
-		//end
-	}
+
+		if found < 0 {
+			curkey |= ST_LB
+			// TODO: mx, my の代わりに tx, ty を保持しておくべきか...
+		}
+	loop
+		
 	return
 
 *vpad05
-	curkey = key
-
+	// curkey と vpad_pos(4, cnt) から描画
 	repeat length2(vpad_pos)
 		val = vpad_pos(3,cnt)
 	
@@ -1067,7 +1088,6 @@ for (let i = 0; i < ss.length; ++i) {
 		id = vpad_pos(2,cnt) + st * 8
 		x = vpad_pos(0,cnt) * 64
 		y = vpad_pos(1,cnt) * 64
-
 
 		if x < 0 {
 			x = 800 + x
