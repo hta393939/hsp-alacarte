@@ -14,7 +14,6 @@
 #packopt ysize 600
 
 #include "hgimg4.as"
-//#include "mod_vpad.as"
 
 #define LONG_TITLE "CANNON CUBE CRASH"
 
@@ -121,7 +120,9 @@
 	gosub *preini
 
 	osbit = _padi(255)
-	if (osbit & 2) | 1 {
+	if osbit & 1 {
+		// windows ‚Å‚Í‰½‚à‚µ‚È‚¢
+	} else {
 		_usevpad = 1
 		gosub *vpad01
 	}
@@ -657,6 +658,11 @@ for (let i = 0; i < ss.length; ++i) {
 	clears.sel_stage |= BIT_PLAY
 	cur_stage = sel_stage
 	gosub *save01
+
+	if _usevpad {
+		gosub *vpad01
+	}
+	
 	goto *main01
 
 
