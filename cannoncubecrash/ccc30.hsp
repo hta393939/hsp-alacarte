@@ -462,6 +462,14 @@
 		mes strf("%d,", ginfo(26)) + ginfo(27)
 	}
 
+	if all_clear {
+		color 0xff, 0xff, 0x00
+		mes ""
+		pos 320
+		mes "ALL CLEAR"
+	}
+	
+
 	if _usevpad {
 		gosub *vpad05
 	}
@@ -488,6 +496,8 @@
 
 
 *clear09
+	all_clear = 1
+	
 	gosub *input01
 	
 	if key & (ST_SPC | ST_Z) {
@@ -549,6 +559,7 @@
 	// dir‚Æ‚Í‚¢‚¤‚ªŠÂ‹«Œõ‚ç‚µ‚¢
 //	setdir GPOBJ_LIGHT, 0.2,0.2,0.2
 
+	all_clear = 0
 	sel_stage = 1
 	cur_stage = 1
 
@@ -895,6 +906,10 @@ for (let i = 0; i < ss.length; ++i) {
 			break
 		}
 		noteget buf,l
+		if strlen(buf) == 0 {
+			l ++
+			continue
+		}
 
 		//split buf,",",ss
 		split_count = _split(buf, ss)
@@ -1057,6 +1072,12 @@ for (let i = 0; i < ss.length; ++i) {
 		}
 		tx = result(1)
 		ty = result(2)
+		if ty < by {
+			mx = tx
+			my = ty
+			curkey |= ST_LB
+			continue
+		}
 
 		vx = tx / 64
 		if tx >= bx {
@@ -1073,11 +1094,6 @@ for (let i = 0; i < ss.length; ++i) {
 				curkey |= vpad_pos(3, cnt)
 			}
 		loop
-
-		if found < 0 {
-			curkey |= ST_LB
-			// TODO: mx, my ‚Ì‘ã‚í‚è‚É tx, ty ‚ð•ÛŽ‚µ‚Ä‚¨‚­‚×‚«‚©...
-		}
 	loop
 		
 	return
