@@ -811,8 +811,16 @@ for (let i = 0; i < ss.length; ++i) {
 	
 		if curkey & bits.cnt {
 			downs.cnt++
-			if (downs.cnt \ KEY_DOWNRATE) != 1 {
-				key = key - (key & bits(cnt))
+
+			if cnt < 4 {
+				if (downs.cnt \ KEY_DOWNRATE) != 1 {
+					key = key - (key & bits(cnt))
+				}
+			} else {
+				// •ûŒü“ü—ÍˆÈŠO‚Í1‰ñ‚Ì‚Ý
+				if downs(cnt) != 1 {
+					key = key - (key & bits(cnt))
+				}
 			}
 		} else {
 			downs.cnt = 0
@@ -852,7 +860,6 @@ for (let i = 0; i < ss.length; ++i) {
 	sdim buf,STRBUF
 	noteget buf,0
 	split_count = _split(buf, ss)
-	//split buf,",",ss
 	
 	stage_name = ss.1
 	
@@ -875,7 +882,6 @@ for (let i = 0; i < ss.length; ++i) {
 		ps.EX.0 = double(ss.2)
 		ps.EY.0 = double(ss.3)
 	
-		//if length(ss) >= 6 + 1 + 6 {
 		if split_count >= 6 + 1 + 6 {			
 			setborder double(ss.7), double(ss.8), double(ss.9), 1
 			setborder double(ss.10), double(ss.11), double(ss.12), 2
@@ -908,7 +914,6 @@ for (let i = 0; i < ss.length; ++i) {
 			continue
 		}
 
-		//split buf,",",ss
 		split_count = _split(buf, ss)
 		type = int(ss.0)
 		if type == 0 {
