@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-12
+ * @date 2026-05-14
  * for HSP3.7 HGIMG4
  */
 
@@ -462,7 +462,7 @@
 		mes strf("%d,", ginfo(26)) + ginfo(27)
 	}
 
-	if all_clear {
+	if status_congra == 2 {
 		color 0xff, 0xff, 0x00
 		mes ""
 		pos 320
@@ -496,8 +496,6 @@
 
 
 *clear09
-	all_clear = 1
-	
 	gosub *input01
 	
 	if key & (ST_SPC | ST_Z) {
@@ -559,7 +557,6 @@
 	// dir‚Æ‚Í‚¢‚¤‚ªŠÂ‹«Œõ‚ç‚µ‚¢
 //	setdir GPOBJ_LIGHT, 0.2,0.2,0.2
 
-	all_clear = 0
 	sel_stage = 1
 	cur_stage = 1
 
@@ -809,7 +806,7 @@ for (let i = 0; i < ss.length; ++i) {
 	repeat 7
 		if (cnt < 4) & (is_contidir != 0) {
 			downs.cnt = 0
-			continue
+			continue // –³Œø‚É‚µ‚½‚ç’x‚©‚Á‚½w
 		}
 	
 		if curkey & bits.cnt {
