@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-09
+ * @date 2026-05-14
  * for HSP3.7 HGIMG4
  */
 
@@ -121,6 +121,7 @@ const _update = () => {
 	  const curx = (bp & 2) ? 1 : 0;
 	  const curc = (bp & 4) ? 1 : 0;
 
+/*
 	  if ((1 - _prex) & curx) {
 	    key |= 0x1000; // X
 	  }
@@ -128,6 +129,17 @@ const _update = () => {
 	    key |= 0x0800; // Z
 	  }
 	  if ((1 - _prec) & curc) {
+	    key |= 0x2000; // C
+	  }
+*/
+
+	  if (curz) {
+	    key |= 0x0800; // Z
+	  }
+	  if (curx) {
+	    key |= 0x1000; // X
+	  }
+	  if (curc) {
 	    key |= 0x2000; // C
 	  }
 
@@ -158,6 +170,7 @@ const _update = () => {
 	  const curdcleft = (bp & (1 << 14)) ? 1 : 0;
 	  const curdcright = (bp & (1 << 15)) ? 1 : 0;
 
+/*
       if ((1 - _predcup) & curdcup) {
 	    key |= 0x2;
       }
@@ -170,6 +183,20 @@ const _update = () => {
 	  if ((1 - _predcright) & curdcright) {
         key |= 0x4;
       }
+*/
+      if (curdcup) {
+	    key |= 0x2;
+      }
+      if (curdcdown) {
+	    key |= 0x8;
+	  }
+	  if (curdcleft) {
+	    key |= 0x1;
+	  }
+	  if (curdcright) {
+        key |= 0x4;
+      }
+
 
       _predcup = curdcup;
       _predcdown = curdcdown;
