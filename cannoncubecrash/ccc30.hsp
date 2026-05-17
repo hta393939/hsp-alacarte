@@ -127,6 +127,14 @@
 		gosub *vpad01
 	}
 
+	// –¢‰Šú‰»‘Îô
+	lbutton = 0
+	box_num = 0 : is_all = 0 : fps = 0 : key = 0 : ts = 0 : clear_ts = 0
+	mx = -1 : my = -1 : status_congra = -1 : max_stage = -1 : cur_stage = -1
+	id = -1 : id_guide = -1 : id_pong = -1
+	x = 0.0 : y = 0.0 : z = 0.0
+	stage_name = ""
+	dim result, 16 : dim touches, 16
 
 	gosub *init01
 	goto *select01
@@ -314,11 +322,26 @@
 
 	if DEV >= 1 {
 		color 255,255,255
-		mes "" + fps + "fps," + ts + "," + exist_num
+		mes "" + ts + "," + exist_num
 		mes strf("%d",a_head) + strf(",%d",a_pitch)
-		padnum = _padnum()
-		mes strf("pad: %d", padnum)
 	}
+
+	if 1 {
+		color 255,255,255
+		font "", 32
+		pos 672, 32
+		mes strf("%2d", fps)
+		padnum = _padnum()
+		padstr = strf("%d", padnum)
+		if padnum == 0 {
+			padstr = "-"
+		}
+		mes strf("PAD: %s", padstr)
+
+		pos 720, 32
+		mes "fps"
+	}
+	
 
 	if clear_ts {
 		s = "CLEAR !"
@@ -458,8 +481,8 @@
 	pos 214
 	mes "PUSH Z KEY FOR START !"
 	
-	if DEV >= 1 {
-		mes strf("%d,", ginfo(26)) + ginfo(27)
+	if DEV >= 1 { // 26, 27 ‚Å“¾‚é‰ð‘œ“x
+		mes strf("%d, %d", ginfo(26), ginfo(27))
 	}
 
 	if status_congra == 2 {
@@ -675,6 +698,8 @@ for (let i = 0; i < ss.length; ++i) {
 
 
 *cam01
+	// mw ‚Í mousew ‚ðŠi”[‚µ‚Ä‚¢‚½
+	mw = 0
 	c_dist = limitf(c_dist + double(mw) * 0.01, 1.0, 100.0)
 	
 	fov = 45.0
