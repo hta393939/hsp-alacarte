@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-17
+ * @date 2026-05-18
  * for HSP3.7 HGIMG4
  */
 
@@ -91,7 +91,7 @@
 #defcfunc _split str intext, array result0, local intext0, local result1, local offset0, local count0
 	//sdim result0, 256, 256
 	intext0 = intext
-	result1 = result
+	result1 = 0
 	offset0 = 0
 	count0 = 0
 	repeat 256
@@ -134,7 +134,8 @@
 	id = -1 : id_guide = -1 : id_pong = -1
 	x = 0.0 : y = 0.0 : z = 0.0
 	stage_name = ""
-	dim result, 16 : dim touches, 16
+	dim result, 16 : dim touches, 16 : dim clears, 101
+	ddim cs, 4
 
 	gosub *init01
 	goto *select01
@@ -804,6 +805,8 @@ for (let i = 0; i < ss.length; ++i) {
 	if _usevpad {
 		gosub *vpad03
 	}
+
+	curkey |= _padstick()
 
 	gosub *input03
 
