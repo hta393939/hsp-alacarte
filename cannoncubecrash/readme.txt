@@ -32,7 +32,7 @@ CANNON CUBE CRASH
 全50ステージです。
 BGM無し、効果音無しです。
 ----
-HSP3.7 hgimg4を利用して作成しました。
+Hot Soup Processor 3.7 hgimg4を利用して作成しました。
 HSPプログラムコンテスト2016投稿作品のWebGL移植版です。
 
 
