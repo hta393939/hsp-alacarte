@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-18
+ * @date 2026-05-19
  * for HSP3.7 HGIMG4
  */
 
@@ -327,7 +327,7 @@
 		mes strf("%d",a_head) + strf(",%d",a_pitch)
 	}
 
-	if 1 {
+	if 1 { // NOTE: info
 		color 255,255,255
 		font "", 32
 		pos 672, 32
@@ -412,6 +412,8 @@
 
 
 *select05
+	getreq fps, SYSREQ_FPS
+	
 // “ü—Í‚ð“¾‚é
 	is_contidir = 0
 	gosub *input01
@@ -491,6 +493,22 @@
 		mes ""
 		pos 320
 		mes "ALL CLEAR"
+	}
+
+	if 1 { // NOTE: info
+		color 255,255,255
+		font "", 32
+		pos 348, 472
+		mes strf("%2d", fps)
+		padnum = _padnum()
+		padstr = strf("%d", padnum)
+		if padnum == 0 {
+			padstr = "-"
+		}
+		mes strf("PAD: %s", padstr)
+
+		pos 396, 472
+		mes "fps"
 	}
 	
 

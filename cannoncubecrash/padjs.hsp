@@ -96,7 +96,8 @@ const _update = () => {
   { // ƒpƒbƒh
     let padnum = 0;
     const povbits = [2, 6, 4, 12, 8, 9, 1, 3];
-    const dead = 0.25;
+    //const dead = 0.25;
+    const dead = 0.5;
     const gs = navigator.getGamepads();
     let bp = 0;
     for (const g of gs) {
