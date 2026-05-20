@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-19
+ * @date 2026-05-20
  * for HSP3.7 HGIMG4
  */
 
@@ -812,6 +812,7 @@ for (let i = 0; i < ss.length; ++i) {
 
 
 *input01
+	// NOTE: コメントアウト
 // マウスとキーボード
 	mx = mousex
 	my = mousey
@@ -1102,6 +1103,9 @@ for (let i = 0; i < ss.length; ++i) {
 	return
 
 *vpad03
+	// curkey を加工する。ビットは一旦消す。
+	curkey -= (curkey & ST_LB)
+
 
 	repeat length2(vpad_pos)
 		vpad_pos(4, cnt) = 0
@@ -1123,7 +1127,7 @@ for (let i = 0; i < ss.length; ++i) {
 		if ty < by {
 			mx = tx
 			my = ty
-			curkey |= ST_LB
+			curkey |= ST_LB // 左ボタン押し下げビットを立てる
 			continue
 		}
 
