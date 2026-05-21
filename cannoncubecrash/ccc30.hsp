@@ -323,25 +323,25 @@
 
 	if DEV >= 1 {
 		color 255,255,255
-		mes "" + ts + "," + exist_num
-		mes strf("%d",a_head) + strf(",%d",a_pitch)
+		mes strf("%d,%d", ts, exist_num)
+		mes strf("%d,%d", a_head, a_pitch)
 	}
 
-	if 1 { // NOTE: info
+	// NOTE: info
 		color 255,255,255
 		font "", 32
-		pos 672, 32
+		pos 654, 32
 		mes strf("%2d", fps)
 		padnum = _padnum()
-		padstr = strf("%d", padnum)
+		padstr = "PAD"
 		if padnum == 0 {
-			padstr = "-"
+			padstr = "NO PAD"
 		}
-		mes strf("PAD: %s", padstr)
+		mes padstr
 
-		pos 720, 32
+		pos 704, 32
 		mes "fps"
-	}
+	
 	
 
 	if clear_ts {
@@ -501,11 +501,11 @@
 		pos 348, 472
 		mes strf("%2d", fps)
 		padnum = _padnum()
-		padstr = strf("%d", padnum)
+		padstr = "PAD"
 		if padnum == 0 {
-			padstr = "-"
+			padstr = "NO PAD"
 		}
-		mes strf("PAD: %s", padstr)
+		mes padstr
 
 		pos 396, 472
 		mes "fps"
