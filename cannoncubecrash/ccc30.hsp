@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-20
+ * @date 2026-05-23
  * for HSP3.7 HGIMG4
  */
 
@@ -1124,18 +1124,20 @@ for (let i = 0; i < ss.length; ++i) {
 		}
 		tx = result(1)
 		ty = result(2)
-		if ty < by {
+
+		vx = tx >> 6
+		if tx >= bx {
+			vx = ((tx - bx) >> 6) - 3
+		}
+		vy = ((ty - by) >> 6) - 3
+		
+		if (ty < by) | (vx >= 3) {
 			mx = tx
 			my = ty
 			curkey |= ST_LB // 左ボタン押し下げビットを立てる
 			continue
 		}
 
-		vx = tx / 64
-		if tx >= bx {
-			vx = (tx - bx) / 64 - 3
-		}
-		vy = (ty - by) / 64 - 3
 		found = -1
 		repeat length2(vpad_pos)
 			x = vpad_pos(0,cnt)
