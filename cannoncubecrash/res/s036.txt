@@ -1,4 +1,4 @@
-1,ASTEROID BELT,Usagi,
+1,CANDLES,Usagi,
 2,1, 1,7,15, 0, -1, 1,3,1, 15,17,15
 3,all
 

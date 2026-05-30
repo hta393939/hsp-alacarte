@@ -1,5 +1,5 @@
 /**
- * @date 2026-05-23
+ * @date 2026-05-30
  * for HSP3.7 HGIMG4
  */
 
@@ -18,7 +18,7 @@
 #define LONG_TITLE "CANNON CUBE CRASH"
 
 // 0: リリース版、1: 開発中、2: 開発中(追加操作可能)
-#const DEV 1
+#const DEV 0
 
 #const REPONG 1.0
 
@@ -183,7 +183,8 @@
 
 	gosub *cam01
 
-	if 1 {
+
+	// 角度の変更
 		if key & (ST_LEFT | ST_A) {
 			a_head--
 		}
@@ -206,7 +207,7 @@
 		dx = rr * sin(ang_head)
 		dy = sin(ang_pitch)
 		dz = - rr * cos(ang_head)
-	}
+
 
 	if is_shooting == 0 {
 		getpos id_pong, x,y,z
