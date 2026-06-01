@@ -26,7 +26,7 @@ CANNON CUBE CRASH
 2026-05-31
 
 次リリースがあったら。
-- [ ] Congraturation と PUSH Z KEY が左に寄ってるので右に寄せる
+- [x] Congraturation と PUSH Z KEY が左に寄ってるので右に寄せる
 
 
 紹介文
@@ -37,6 +37,7 @@ CANNON CUBE CRASH
 最初の5ステージは打ち出し方向を変えずに
 ボックスをそのまま打ち出すだけでクリアできます。
 BGM無し、効果音無しです。
+2026-06-01: 画面外のタップが反対側の位置として判定されていたバグを修正しました。
 ----
 Hot Soup Processor 3.7 hgimg4を利用して作成しました。
 HSPプログラムコンテスト2016投稿作品のWebGL移植版です。
